@@ -1,0 +1,3756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Options Scanner — Public</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & Tokens ───────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #06080d;
+      --panel:      #0c0f18;
+      --panel2:     #10131f;
+      --border:     #1a2035;
+      --border2:    #242d48;
+      --text:       #c4cfe8;
+      --muted:      #3f4e6e;
+      --muted2:     #5a6a8a;
+      --amber:      #f5a623;
+      --amber-dim:  rgba(245,166,35,0.12);
+      --green:      #0fc98a;
+      --green-dim:  rgba(15,201,138,0.08);
+      --red:        #f05151;
+      --red-dim:    rgba(240,81,81,0.08);
+      --blue:       #4e8cff;
+      --purple:     #a78bfa;
+      --call-bg:    #070f0b;
+      --put-bg:     #0f0707;
+      --itm-call:   #0b1a13;
+      --itm-put:    #1a0b0b;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Scrollbars ───────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted2); }
+
+    /* ── Header bar ───────────────────────────────────────────────────── */
+    header {
+      height: 38px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--amber);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .hdr-divider { width: 1px; height: 16px; background: var(--border2); }
+    .hdr-spacer  { flex: 1; }
+
+    #hdr-quote {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    #hdr-ticker { font-weight: 700; color: var(--text); }
+    #hdr-price  { font-weight: 600; color: var(--amber); }
+    #hdr-ts     { font-size: 9px; color: var(--muted2); }
+
+    #hdr-status {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--muted2);
+      text-transform: uppercase;
+    }
+
+    #hdr-status.connected { color: var(--green); }
+    #hdr-status.error     { color: var(--red); }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────────────── */
+    .sidebar {
+      width: 210px;
+      min-width: 210px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 14px 12px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sb-section { display: flex; flex-direction: column; gap: 6px; }
+    .sb-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .sb-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
+
+    /* ── Inputs & Selects ─────────────────────────────────────────────── */
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 8px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    input::placeholder { color: var(--muted); }
+    input:focus, select:focus { border-color: var(--amber); }
+    select option { background: var(--panel2); }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    /* ── Buttons ──────────────────────────────────────────────────────── */
+    button {
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      border: none;
+      transition: all 0.12s;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      padding: 7px 12px;
+      width: 100%;
+      letter-spacing: 1px;
+      font-size: 10px;
+    }
+    .btn-primary:hover   { background: #ffc040; }
+    .btn-primary:active  { transform: scale(0.98); }
+    .btn-primary:disabled { background: var(--border2); color: var(--muted); cursor: not-allowed; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      padding: 5px 10px;
+      font-size: 10px;
+    }
+    .btn-outline:hover { border-color: var(--amber); color: var(--amber); }
+
+    .btn-green {
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      padding: 8px 18px;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+    .btn-green:hover   { background: #2eeaa0; }
+    .btn-green:disabled { background: var(--border2); color: var(--muted); cursor: not-allowed; }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      padding: 3px 7px;
+      font-size: 10px;
+    }
+    .btn-danger:hover { border-color: var(--red); color: var(--red); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      padding: 5px 10px;
+      font-size: 10px;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+
+    /* ── Expiration pills ─────────────────────────────────────────────── */
+    .exp-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 170px;
+      overflow-y: auto;
+    }
+
+    .exp-pill {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      transition: all 0.1s;
+      font-size: 10px;
+    }
+
+    .exp-pill:hover { border-color: var(--border2); color: var(--text); }
+
+    .exp-pill.active {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: var(--amber-dim);
+    }
+
+    .exp-dte { font-size: 9px; color: var(--muted2); }
+    .exp-pill.active .exp-dte { color: var(--amber); opacity: 0.6; }
+
+    /* ── Toggle switch ────────────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--muted2);
+    }
+
+    .toggle { position: relative; width: 28px; height: 15px; cursor: pointer; flex-shrink: 0; }
+    .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border2);
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .toggle input:checked + .toggle-track { background: var(--amber); }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 11px; height: 11px;
+      background: #000;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(13px); }
+
+    /* ── Main area ────────────────────────────────────────────────────── */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+
+    /* ── Tabs ─────────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      padding: 9px 18px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      border-bottom: 2px solid transparent;
+      background: none;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tab-btn:hover   { color: var(--text); }
+    .tab-btn.active  { color: var(--amber); border-bottom-color: var(--amber); }
+
+    /* ── Toolbar (filter bar) ─────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 7px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .toolbar select { width: auto; padding: 4px 8px; font-size: 10px; }
+    .toolbar input  { width: auto; padding: 4px 8px; font-size: 10px; }
+    .tb-sep  { width: 1px; height: 14px; background: var(--border2); }
+    .tb-lbl  { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    .unusual-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 9px;
+      color: var(--muted2);
+      user-select: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.12s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .unusual-btn:hover        { border-color: var(--amber); color: var(--amber); }
+    .unusual-btn.active       { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+    .unusual-btn .dot         { width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 50%; }
+    .unusual-btn.active .dot  { background: var(--amber); }
+
+    #chain-meta { font-size: 9px; color: var(--muted); margin-left: auto; }
+
+    /* ── Loading bar ──────────────────────────────────────────────────── */
+    .loading-bar {
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--amber) 50%, transparent 100%);
+      background-size: 300% 100%;
+      animation: shimmer 1.2s infinite;
+    }
+
+    @keyframes shimmer { 0%{ background-position:100% 0 } 100%{ background-position:-100% 0 } }
+
+    /* ── Chain table ──────────────────────────────────────────────────── */
+    .chain-scroll { flex: 1; overflow: auto; min-height: 0; }
+
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--border2);
+      padding: 6px 8px;
+      text-align: right;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    thead th:hover     { color: var(--muted2); }
+    thead th.col-sorted { color: var(--amber); }
+    thead th.strike-hdr { text-align: center; background: var(--panel); border-left: 1px solid var(--border2); border-right: 1px solid var(--border2); }
+
+    td {
+      padding: 4px 8px;
+      text-align: right;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(26,32,53,0.6);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .strike-td {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--panel) !important;
+      border-left: 1px solid var(--border2);
+      border-right: 1px solid var(--border2);
+    }
+
+    tr.high-iv { box-shadow: inset 2px 0 0 var(--amber); }
+
+    .badge-unusual {
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 0;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+
+    .tag-atm {
+      display: inline-block;
+      font-size: 8px;
+      padding: 0 3px;
+      background: rgba(78, 140, 255, 0.15);
+      color: var(--blue);
+      vertical-align: middle;
+      margin-left: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    .iv-high   { color: var(--amber); font-weight: 600; }
+    .iv-med    { color: var(--purple); }
+    .delta-c   { color: var(--green); }
+    .delta-p   { color: var(--red); }
+    .ask-c     { color: #42e8a0; }
+    .bid-p     { color: #f07070; }
+
+    .add-btn {
+      opacity: 0;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--amber);
+      border: 1px solid var(--amber);
+      background: transparent;
+      padding: 2px 5px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.1s;
+    }
+
+    tr:hover .add-btn { opacity: 1; }
+    .add-btn:hover { background: var(--amber-dim); }
+
+    /* Column widths */
+    .w-iv     { width: 50px; }
+    .w-delta  { width: 48px; }
+    .w-theta  { width: 52px; }
+    .w-vol    { width: 56px; }
+    .w-oi     { width: 56px; }
+    .w-bid    { width: 58px; }
+    .w-ask    { width: 58px; }
+    .w-add    { width: 42px; }
+    .w-strike { width: 72px; }
+
+    /* ── Empty / Loading states ───────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .empty-glyph { font-size: 28px; opacity: 0.25; }
+    .empty-msg   { font-size: 11px; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Strategy Builder ─────────────────────────────────────────────── */
+    /* ── Builder 3-zone grid ──────────────────────────────────────────── */
+    .builder {
+      flex: 1; display: grid; min-height: 0; overflow: hidden;
+      grid-template-rows: minmax(0,1fr) minmax(0,1fr);
+      grid-template-columns: 1fr 340px;
+      grid-template-areas: "legs pre" "pay pay";
+    }
+    .builder-legs {
+      grid-area: legs; display: flex; flex-direction: column;
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      min-height: 0; overflow: hidden;
+    }
+    .builder-preflight {
+      grid-area: pre; display: flex; flex-direction: column;
+      border-bottom: 1px solid var(--border); min-height: 0; overflow-y: auto;
+    }
+    .builder-payoff {
+      grid-area: pay; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+    }
+    .zone-hdr {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 14px; border-bottom: 1px solid var(--border);
+      background: var(--panel); flex-shrink: 0;
+    }
+    .zone-title {
+      font-size: 8px; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--muted); white-space: nowrap;
+    }
+    .zone-body { flex: 1; overflow-y: auto; padding: 10px 14px; min-height: 0; }
+    /* Payoff specific */
+    #payoff-canvas { display: block; width: 100%; flex: 1; min-height: 0; cursor: crosshair; }
+    .slider-row {
+      display: flex; align-items: center; gap: 10px; padding: 6px 14px;
+      border-top: 1px solid var(--border); flex-shrink: 0;
+      font-size: 9px; color: var(--muted2); background: var(--panel);
+    }
+    .slider-row input[type=range] {
+      flex: 1; height: 3px; -webkit-appearance: none; appearance: none;
+      background: var(--border2); outline: none; cursor: pointer; border: none; padding: 0;
+    }
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 13px; height: 13px;
+      border-radius: 50%; background: var(--amber); cursor: pointer;
+    }
+    .slider-lbl { font-size: 9px; color: var(--amber); font-weight: 700; min-width: 46px; text-align: right; }
+    /* Preflight inner */
+    .pf-inner { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+    .pf-order-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pf-order-row .lbl { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .pf-order-row input {
+      background: var(--bg); border: 1px solid var(--border2); color: var(--text);
+      font-family: 'JetBrains Mono',monospace; font-size: 11px;
+      padding: 5px 7px; outline: none; width: 70px;
+    }
+    .pf-order-row input:focus { border-color: var(--amber); }
+    /* payoff stats */
+    .payoff-stats { display: flex; gap: 10px; font-size: 9px; margin-left: auto; flex-wrap: wrap; }
+    .ps-key { color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .ps-val { font-weight: 700; margin-left: 4px; }
+    .ps-profit { color: var(--green); } .ps-loss { color: var(--red); }
+
+    .builder-row { display: flex; align-items: center; gap: 10px; }
+
+    .section-title {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .templates { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .tpl-btn {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      padding: 5px 10px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .tpl-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+
+    #tpl-note {
+      font-size: 10px;
+      color: var(--amber);
+      background: var(--amber-dim);
+      border-left: 2px solid var(--amber);
+      padding: 8px 10px;
+      display: none;
+      line-height: 1.6;
+    }
+
+    .legs-table { width: 100%; border-collapse: collapse; }
+
+    .legs-table th {
+      text-align: left;
+      padding: 5px 8px;
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border2);
+      background: var(--panel2);
+    }
+
+    .legs-table td {
+      text-align: left;
+      padding: 6px 8px;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(26,32,53,0.5);
+    }
+
+    .leg-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 6px;
+    }
+
+    .leg-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 6px;
+      width: 52px;
+    }
+
+    .side-buy  { color: var(--green); }
+    .side-sell { color: var(--red); }
+
+    /* ── Preflight panel ──────────────────────────────────────────────── */
+    .preflight-box {
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      padding: 14px 16px;
+    }
+
+    .preflight-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .pf-key  { font-size: 8px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+    .pf-val  { font-size: 16px; font-weight: 700; }
+    .pf-debit  { color: var(--red); }
+    .pf-credit { color: var(--green); }
+    .pf-free   { color: var(--green); font-size: 11px; }
+
+    .order-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .order-row .lbl { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    .order-row input {
+      width: 72px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+
+    /* ── Toast ────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      padding: 9px 14px;
+      font-size: 11px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      z-index: 999;
+      max-width: 320px;
+      line-height: 1.5;
+      animation: slideUp 0.2s ease;
+      display: none;
+    }
+
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error   { border-color: var(--red);   color: var(--red); }
+    #toast.info    { border-color: var(--amber);  color: var(--amber); }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } }
+
+    .hidden { display: none !important; }
+    #tab-builder:not(.hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
+    /* ── Modal overlay for order confirm ─────────────────────────────── */
+    #modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      display: none;
+    }
+
+    .modal-box {
+      background: var(--panel);
+      border: 1px solid var(--amber);
+      padding: 24px 28px;
+      max-width: 420px;
+      width: 90%;
+    }
+
+    .modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .modal-detail {
+      font-size: 11px;
+      color: var(--muted2);
+      line-height: 2;
+      margin-bottom: 18px;
+    }
+
+    .modal-detail strong { color: var(--text); }
+
+    .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Analytics Tab ────────────────────────────────────────────────── */
+    #tab-analytics:not(.hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .analytics-toolbar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 7px 12px; border-bottom: 1px solid var(--border);
+      background: var(--panel); flex-shrink: 0;
+    }
+    .analytics-sub-tabs { display: flex; gap: 2px; }
+    .analytics-tab {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 10px; cursor: pointer; border: 1px solid var(--border2);
+      background: transparent; color: var(--muted2);
+      transition: all 0.12s;
+    }
+    .analytics-tab:hover { color: var(--text); border-color: var(--border2); }
+    .analytics-tab.active { background: var(--amber); color: #000; border-color: var(--amber); }
+    .analytics-exp-pills { display: flex; gap: 3px; flex-wrap: wrap; }
+    .analytics-pill {
+      font-size: 9px; font-weight: 700; padding: 3px 7px; cursor: pointer;
+      border: 1px solid var(--border2); color: var(--muted2); background: transparent;
+      font-family: 'JetBrains Mono', monospace; transition: all 0.1s;
+    }
+    .analytics-pill:hover  { border-color: var(--amber); color: var(--amber); }
+    .analytics-pill.active { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+    .analytics-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+    .analytics-chart-pane {
+      flex: 1; display: flex; flex-direction: column; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .analytics-stats-pane {
+      width: 220px; flex-shrink: 0; display: flex; flex-direction: column;
+      overflow-y: auto; padding: 14px; font-size: 11px; gap: 14px;
+    }
+    #analytics-canvas { display: block; width: 100%; flex: 1; min-height: 0; }
+
+
+    /* ── GEX Tab ──────────────────────────────────────────────────────── */
+    #tab-gex:not(.hidden) { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .gex-layout { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+    .gex-chart-pane {
+      flex: 1; display: flex; flex-direction: column; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .gex-stats-pane {
+      width: 220px; flex-shrink: 0; display: flex; flex-direction: column;
+      overflow-y: auto; padding: 14px;
+      font-size: 11px; gap: 14px;
+    }
+    #gex-canvas { display: block; width: 100%; flex: 1; min-height: 0; cursor: crosshair; }
+    .gex-stat-block { display: flex; flex-direction: column; gap: 4px; }
+    .gex-stat-lbl { font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .gex-stat-val { font-size: 15px; font-weight: 700; }
+    .gex-positive { color: var(--green); }
+    .gex-negative { color: var(--red); }
+    .gex-neutral  { color: var(--amber); }
+    .gex-level-row { display: flex; justify-content: space-between; font-size: 10px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+    .gex-level-key { color: var(--muted2); }
+    .gex-level-val { font-weight: 700; color: var(--text); }
+    .gex-toolbar { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-bottom: 1px solid var(--border); background: var(--panel); flex-shrink: 0; flex-wrap: wrap; }
+    .gex-exp-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+    .gex-pill {
+      font-size: 9px; font-weight: 700; padding: 3px 8px; cursor: pointer;
+      border: 1px solid var(--border2); color: var(--muted2); background: transparent;
+      font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; transition: all 0.1s;
+    }
+    .gex-pill:hover  { border-color: var(--amber); color: var(--amber); }
+    .gex-pill.active { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+    .gex-legend { display: flex; gap: 12px; font-size: 9px; color: var(--muted2); margin-left: auto; }
+
+
+    /* ── Light theme ─────────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg:#f4f5f8; --panel:#ffffff; --panel2:#f0f1f5;
+      --border:#dde0ea; --border2:#c8ccd8;
+      --text:#1a1f2e; --muted:#8a92a8; --muted2:#6a7288;
+      --amber:#d4840a; --amber-dim:rgba(212,132,10,0.10);
+      --green:#0a9c66; --green-dim:rgba(10,156,102,0.08);
+      --red:#d63030; --red-dim:rgba(214,48,48,0.08);
+      --blue:#2563eb; --purple:#7c3aed;
+      --call-bg:#f0faf5; --put-bg:#fdf0f0;
+      --itm-call:#d8f5e8; --itm-put:#fde0e0;
+      --chart-grid:rgba(0,0,0,0.05); --chart-zero:rgba(0,0,0,0.2);
+    }
+    :root, [data-theme="dark"] {
+      --chart-grid:rgba(255,255,255,0.04); --chart-zero:rgba(255,255,255,0.15);
+    }
+    @media (prefers-color-scheme:light) {
+      :root:not([data-theme="dark"]):not([data-theme="light"]) {
+        --bg:#f4f5f8; --panel:#ffffff; --panel2:#f0f1f5;
+        --border:#dde0ea; --border2:#c8ccd8;
+        --text:#1a1f2e; --muted:#8a92a8; --muted2:#6a7288;
+        --amber:#d4840a; --amber-dim:rgba(212,132,10,0.10);
+        --green:#0a9c66; --green-dim:rgba(10,156,102,0.08);
+        --red:#d63030; --red-dim:rgba(214,48,48,0.08);
+        --blue:#2563eb; --purple:#7c3aed;
+        --call-bg:#f0faf5; --put-bg:#fdf0f0;
+        --itm-call:#d8f5e8; --itm-put:#fde0e0;
+        --chart-grid:rgba(0,0,0,0.05); --chart-zero:rgba(0,0,0,0.2);
+      }
+    }
+    /* ── Theme toggle ────────────────────────────────────────── */
+    .theme-toggle { display:flex; gap:2px; background:var(--bg); border:1px solid var(--border2); padding:2px; }
+    .theme-btn { background:transparent; border:none; color:var(--muted2); font-family:'JetBrains Mono',monospace;
+      font-size:9px; font-weight:700; letter-spacing:1px; padding:3px 7px; cursor:pointer; text-transform:uppercase; transition:all 0.12s; }
+    .theme-btn:hover { color:var(--text); }
+    .theme-btn.active { background:var(--amber); color:#000; }
+    /* ── Payoff chart ────────────────────────────────────────── */
+    #payoff-wrap { margin-top:18px; border:1px solid var(--border2); background:var(--panel2); }
+    .payoff-hdr { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .payoff-title { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .payoff-legend { display:flex; gap:12px; font-size:9px; color:var(--muted2); }
+    .legend-line { display:inline-block; width:18px; height:2px; margin-right:3px; vertical-align:middle; }
+    .payoff-stats { display:flex; gap:12px; font-size:9px; margin-left:auto; flex-wrap:wrap; }
+    .ps-key { color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+    .ps-val { font-weight:700; margin-left:4px; }
+    .ps-profit { color:var(--green); } .ps-loss { color:var(--red); }
+    #payoff-canvas { display:block; width:100%; cursor:crosshair; }
+
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">⬡ Options Scanner</div>
+  <div class="hdr-divider"></div>
+  <div id="hdr-quote" class="hidden">
+    <span id="hdr-ticker"></span>
+    <span id="hdr-price"></span>
+    <span id="hdr-ts"></span>
+  </div>
+  <div class="hdr-spacer"></div>
+  <div class="theme-toggle">
+    <button class="theme-btn" onclick="setTheme('light')" id="theme-light">☀ Light</button>
+    <button class="theme-btn active" onclick="setTheme('auto')" id="theme-auto">◑ Auto</button>
+    <button class="theme-btn" onclick="setTheme('dark')" id="theme-dark">☾ Dark</button>
+  </div>
+  <div class="hdr-divider" style="margin:0 8px"></div>
+  <div id="hdr-status">NOT CONNECTED</div>
+</header>
+
+<!-- ── Layout ──────────────────────────────────────────────────────────── -->
+<div class="layout">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="sb-section">
+      <div class="sb-label">API Token</div>
+      <input type="password" id="token-input" placeholder="Enter access token…" autocomplete="off"
+             onkeydown="if(event.key==='Enter') connectAccount()">
+      <button class="btn-primary" onclick="connectAccount()">CONNECT</button>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-label">Account</div>
+      <select id="account-sel" onchange="pickAccount(this.value)">
+        <option value="">— no accounts —</option>
+      </select>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Ticker</div>
+      <input type="text" id="ticker-inp" placeholder="SPY, AAPL, TSLA…"
+             maxlength="10" style="text-transform:uppercase"
+             onkeydown="if(event.key==='Enter') loadExpirations()">
+      <button class="btn-primary" id="load-btn" onclick="loadExpirations()" disabled>
+        LOAD EXPIRATIONS
+      </button>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Expirations</div>
+      <div class="exp-list" id="exp-list">
+        <div style="color:var(--muted);font-size:10px;padding:4px">Load a ticker first</div>
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-label">Auto-Refresh</div>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="refresh-chk" onchange="toggleAutoRefresh(this.checked)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <select id="refresh-sel" style="width:auto;padding:3px 6px;font-size:10px;"
+                onchange="resetAutoRefresh()">
+          <option value="15">15s</option>
+          <option value="30" selected>30s</option>
+          <option value="60">60s</option>
+          <option value="120">2 min</option>
+        </select>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('scanner')" id="tab-scanner-btn">
+        📊 Scanner
+      </button>
+      <button class="tab-btn" onclick="switchTab('builder')" id="tab-builder-btn">
+        ⚡ Strategy Builder
+        <span id="leg-badge" class="hidden"
+              style="margin-left:5px;background:var(--amber);color:#000;font-size:9px;
+                     padding:1px 5px;font-weight:700;border-radius:1px;"></span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('gex')" id="tab-gex-btn">
+        γ GEX
+      </button>
+      <button class="tab-btn" onclick="switchTab('analytics')" id="tab-analytics-btn">
+        📈 Analytics
+      </button>
+    </div>
+
+    <!-- ── Scanner Tab ───────────────────────────────────────────────── -->
+    <div id="tab-scanner" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+
+      <div id="loading-bar" class="loading-bar hidden"></div>
+
+      <div class="toolbar">
+        <span class="tb-lbl">Show</span>
+        <select id="type-sel" onchange="renderChain()">
+          <option value="both">Calls + Puts</option>
+          <option value="calls">Calls</option>
+          <option value="puts">Puts</option>
+        </select>
+        <div class="tb-sep"></div>
+        <span class="tb-lbl">Min IV</span>
+        <input type="number" id="iv-inp" value="0" min="0" max="500" step="5"
+               style="width:52px" onchange="renderChain()">
+        <span style="font-size:10px;color:var(--muted2)">%</span>
+        <div class="tb-sep"></div>
+        <div class="tb-sep"></div>
+        <span class="tb-lbl">Strikes</span>
+        <select id="strikes-sel" onchange="renderChain()">
+          <option value="5">±5</option>
+          <option value="10">±10</option>
+          <option value="10" selected>±10</option>
+          <option value="40">±40</option>
+          <option value="0">All</option>
+        </select>
+        <div class="tb-sep"></div>
+        <button class="unusual-btn" id="unusual-btn" onclick="toggleUnusual()">
+          <span class="dot"></span> ⚡ Unusual
+        </button>
+        <div id="chain-meta"></div>
+      </div>
+
+      <div class="chain-scroll" id="chain-scroll">
+        <div class="empty-state">
+          <div class="empty-glyph">◎</div>
+          <div class="empty-msg">Connect your account and enter a ticker to begin</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Builder Tab ───────────────────────────────────────────────── -->
+    <div id="tab-builder" class="hidden">
+      <div class="builder">
+
+        <!-- ── LEGS (top-left) ──────────────────────────────────────────── -->
+        <div class="builder-legs">
+          <div class="zone-hdr">
+            <span class="zone-title">Strategy</span>
+            <button class="tpl-btn" onclick="showTpl('bull_call')">Bull Call</button>
+            <button class="tpl-btn" onclick="showTpl('bull_put_spread')">Bull Put</button>
+            <button class="tpl-btn" onclick="showTpl('cash_secured_put')">CSP</button>
+            <button class="tpl-btn" onclick="showTpl('covered_call')">Cov. Call</button>
+            <button class="tpl-btn" onclick="showTpl('synthetic_long')">Synth Long</button>
+            <button class="tpl-btn" onclick="showTpl('bear_put')">Bear Put</button>
+            <button class="tpl-btn" onclick="showTpl('bear_call_spread')">Bear Call</button>
+            <button class="tpl-btn" onclick="showTpl('protective_put')">Prot. Put</button>
+            <button class="tpl-btn" onclick="showTpl('synthetic_short')">Synth Short</button>
+            <button class="tpl-btn" onclick="showTpl('iron_condor')">Iron Condor</button>
+            <button class="tpl-btn" onclick="showTpl('iron_butterfly')">Iron Fly</button>
+            <button class="tpl-btn" onclick="showTpl('butterfly')">Butterfly</button>
+            <button class="tpl-btn" onclick="showTpl('broken_wing_butterfly')">BWB</button>
+            <button class="tpl-btn" onclick="showTpl('calendar')">Calendar</button>
+            <button class="tpl-btn" onclick="showTpl('diagonal')">Diagonal</button>
+            <button class="tpl-btn" onclick="showTpl('straddle')">Straddle</button>
+            <button class="tpl-btn" onclick="showTpl('strangle')">Strangle</button>
+            <button class="tpl-btn" onclick="showTpl('jade_lizard')">Jade Lizard</button>
+            <button class="tpl-btn" onclick="showTpl('ratio_spread')">Ratio</button>
+            <button class="tpl-btn" onclick="showTpl('condor')">Condor</button>
+            <div style="flex:1"></div>
+            <span id="leg-count" style="font-size:9px;color:var(--amber);white-space:nowrap"></span>
+            <button class="btn-ghost" onclick="clearLegs()" style="padding:3px 8px;font-size:9px">CLEAR</button>
+          </div>
+          <div id="tpl-note" style="display:none;font-size:10px;color:var(--amber);
+               background:var(--amber-dim);border-left:2px solid var(--amber);
+               padding:6px 12px;line-height:1.6;flex-shrink:0"></div>
+          <div class="zone-body" style="padding:0">
+            <div id="legs-wrap" style="padding:10px 14px">
+              <div style="color:var(--muted);font-size:11px;padding:8px 0">
+                Pick a template above or click <strong style="color:var(--amber)">+ADD</strong> in the Scanner.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PRE-TRADE (top-right) ────────────────────────────────────── -->
+        <div class="builder-preflight" id="preflight-wrap">
+          <div class="zone-hdr">
+            <span class="zone-title">Pre-Trade</span>
+            <div style="flex:1"></div>
+            <button class="btn-outline" onclick="runPreflight()" style="padding:4px 10px;font-size:9px">RUN PREFLIGHT</button>
+          </div>
+          <div class="pf-inner">
+            <div id="pf-box" class="preflight-box">
+              <div style="color:var(--muted);font-size:11px">Run preflight to see cost estimate.</div>
+            </div>
+            <div class="pf-order-row">
+              <span class="lbl">Qty</span>
+              <input type="number" id="qty-inp" value="1" min="1" max="100" style="width:52px">
+              <span class="lbl">Limit $</span>
+              <input type="text" id="limit-inp" placeholder="0.00" style="width:72px">
+              <button class="btn-outline" onclick="runPreflight()" style="padding:5px 9px;font-size:10px">PREFLIGHT</button>
+              <button class="btn-green" id="place-btn" onclick="openModal()" disabled style="padding:5px 12px;font-size:10px">PLACE</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PAYOFF (full-width bottom) ──────────────────────────────── -->
+        <div class="builder-payoff">
+          <div style="display:flex;flex-direction:column;flex:1;min-height:0;background:var(--panel2)" id="payoff-wrap">
+            <div class="zone-hdr" style="border-top:1px solid var(--border)">
+              <span class="zone-title">Payoff Diagram</span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--muted2)">
+                <span style="display:inline-block;width:16px;height:2px;background:var(--amber);vertical-align:middle"></span>At Expiry
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--muted2)">
+                <span style="display:inline-block;width:16px;height:0;border-top:2px dashed var(--blue);vertical-align:middle"></span>Theoretical
+              </span>
+              <div class="payoff-stats" id="payoff-stats"></div>
+            </div>
+            <canvas id="payoff-canvas"></canvas>
+            <div class="slider-row">
+              <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap">Theo Date</span>
+              <input type="range" id="payoff-slider" min="0" max="100" value="0" oninput="onPayoffSlider(this.value)">
+              <span class="slider-lbl" id="slider-lbl">Today</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── GEX Tab ─────────────────────────────────────────────────────── -->
+    <div id="tab-gex" class="hidden">
+      <div class="gex-toolbar">
+        <span class="zone-title">Gamma Exposure</span>
+        <div class="gex-exp-pills" id="gex-exp-pills"></div>
+        <div class="gex-legend">
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);opacity:0.7;vertical-align:middle;margin-right:3px"></span>Call GEX</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);opacity:0.7;vertical-align:middle;margin-right:3px"></span>Put GEX</span>
+          <span><span style="display:inline-block;width:10px;height:2px;background:var(--amber);vertical-align:middle;margin-right:3px"></span>Net GEX</span>
+        </div>
+        <div style="flex:1"></div>
+        <div id="gex-spinner" style="display:none;align-items:center;gap:6px;font-size:9px;color:var(--muted2)">
+          <div style="width:10px;height:10px;border:1.5px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:spin 0.7s linear infinite"></div>
+          Computing…
+        </div>
+      </div>
+      <div class="gex-layout">
+        <div class="gex-chart-pane">
+          <canvas id="gex-canvas"></canvas>
+        </div>
+        <div class="gex-stats-pane" id="gex-stats-pane">
+          <div style="color:var(--muted);font-size:11px">Load a ticker in the Scanner first, then switch to this tab.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Analytics Tab ───────────────────────────────────────────────── -->
+    <div id="tab-analytics" class="hidden">
+      <div class="analytics-toolbar">
+        <div class="analytics-sub-tabs">
+          <button class="analytics-tab active" onclick="switchAnalytics('iv_smile')" id="atab-iv_smile">IV Smile</button>
+          <button class="analytics-tab" onclick="switchAnalytics('max_pain')" id="atab-max_pain">Max Pain</button>
+          <button class="analytics-tab" onclick="switchAnalytics('pcr')" id="atab-pcr">Put/Call Ratio</button>
+          <button class="analytics-tab" onclick="switchAnalytics('implied_move')" id="atab-implied_move">Implied Move</button>
+          <button class="analytics-tab" onclick="switchAnalytics('vol_surface')" id="atab-vol_surface">Vol Surface</button>
+        </div>
+        <div class="analytics-exp-pills" id="analytics-exp-pills"></div>
+        <div style="flex:1"></div>
+        <div id="analytics-spinner" style="display:none;align-items:center;gap:6px;font-size:9px;color:var(--muted2)">
+          <div style="width:10px;height:10px;border:1.5px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:spin 0.7s linear infinite"></div>
+          Loading…
+        </div>
+      </div>
+      <div class="analytics-body">
+        <div class="analytics-chart-pane">
+          <canvas id="analytics-canvas"></canvas>
+        </div>
+        <div class="analytics-stats-pane" id="analytics-stats-pane">
+          <div style="color:var(--muted);font-size:11px">Load a ticker in the Scanner first.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Order Confirm Modal ──────────────────────────────────────────────── -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-title">⚠ LIVE ORDER CONFIRMATION</div>
+    <div id="modal-detail" class="modal-detail"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">CANCEL</button>
+      <button class="btn-green" onclick="placeOrder()" style="padding:7px 16px;">CONFIRM & PLACE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const S = {
+  token:       localStorage.getItem('pub_token') || '',
+  accountId:   localStorage.getItem('pub_account') || '',
+  ticker:      '',
+  expirations: [],
+  selectedExp: null,
+  underlying:  null,   // {last, bid, ask}
+  calls:       [],
+  puts:        [],
+  greeks:      {},     // osiSymbol → {delta,gamma,theta,vega,rho,impliedVolatility}
+  legs:        [],
+  preflight:   null,
+  unusualOnly: false,
+  refreshTimer: null,
+  lastScan:    null,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  API HELPER
+// ═══════════════════════════════════════════════════════════════════════════
+async function api(method, path, body = null) {
+  if (!S.token) throw new Error('No API token — connect first');
+  const res = await fetch(path, {
+    method,
+    headers: {
+      'x-public-token': S.token,
+      'Content-Type':   'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONNECTION
+//
+//  Public uses a two-step auth flow:
+//    1. Generate a SECRET KEY at public.com/settings/security/api
+//    2. POST the secret → receive a short-lived ACCESS TOKEN
+//    3. Use the access token as Bearer on all subsequent requests
+// ═══════════════════════════════════════════════════════════════════════════
+async function connectAccount() {
+  const inp = document.getElementById('token-input');
+  const val = inp.value.trim();
+
+  if (val && !val.includes('\u2022')) {
+    S.rawKey = val;
+    localStorage.setItem('pub_raw_key', val);
+    inp.value = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+  } else if (!S.rawKey) {
+    S.rawKey = localStorage.getItem('pub_raw_key') || '';
+  }
+
+  if (!S.rawKey) {
+    toast('Enter your secret key from public.com/settings/security/api', 'error');
+    return;
+  }
+
+  setStatus('Authenticating…');
+
+  // Step 1: exchange secret key for access token
+  try {
+    const authRes = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: S.rawKey, validityInMinutes: 120 }),
+    });
+    const authData = await authRes.json();
+
+    if (!authRes.ok || !authData.accessToken) {
+      const msg = authData.message || authData.error || 'Auth failed (' + authRes.status + ')';
+      setStatus('AUTH FAILED', 'error');
+      toast('Key exchange failed: ' + msg, 'error');
+      return;
+    }
+
+    S.token = authData.accessToken;
+    // Warn before expiry
+    setTimeout(() => toast('Access token expiring soon — click CONNECT to refresh', 'error'), 110 * 60 * 1000);
+    toast('Secret key exchanged for access token ✓', 'success');
+  } catch (e) {
+    setStatus('AUTH FAILED', 'error');
+    toast('Auth error: ' + e.message, 'error');
+    return;
+  }
+
+  // Step 2: load accounts with the fresh access token
+  try {
+    const data = await api('GET', '/api/accounts');
+    const accounts = data.accounts || [];
+
+    const sel = document.getElementById('account-sel');
+    sel.innerHTML = '<option value="">\u2014 select \u2014</option>';
+    accounts.forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.accountId;
+      o.text  = (a.brokerageAccountType || 'BROKERAGE') + ' \u00b7 ' + (a.optionsLevel || '');
+      if (a.accountId === S.accountId) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    if (accounts.length === 1) pickAccount(accounts[0].accountId);
+
+    setStatus('CONNECTED', 'connected');
+    document.getElementById('load-btn').disabled = false;
+    toast('Connected \u00b7 ' + accounts.length + ' account(s) \u00b7 token valid 2h', 'success');
+  } catch (e) {
+    setStatus('AUTH FAILED', 'error');
+    toast(e.message, 'error');
+  }
+}
+
+function pickAccount(id) {
+  S.accountId = id;
+  if (id) {
+    localStorage.setItem('pub_account', id);
+    document.getElementById('account-sel').value = id;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  EXPIRATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadExpirations() {
+  const ticker = document.getElementById('ticker-inp').value.trim().toUpperCase();
+  if (!ticker)           { toast('Enter a ticker symbol', 'error'); return; }
+  if (!S.accountId)      { toast('Select an account first', 'error'); return; }
+
+  // Reset GEX if ticker changed
+  if (S.ticker !== ticker) {
+    GEX_STATE.selectedExpiry = null;
+    GEX_STATE.data = {};
+    renderGEXPills([]);
+  }
+  S.ticker = ticker;
+  setStatus('Loading…');
+  setBusy(true);
+
+  try {
+    const data = await api('POST', '/api/expirations', {
+      accountId: S.accountId,
+      instrument: { symbol: ticker, type: 'EQUITY' },
+    });
+
+    S.expirations = data.expirations || [];
+    renderExpirations();
+
+    if (S.expirations.length) selectExp(S.expirations[0]);
+    else toast('No expirations found for ' + ticker, 'error');
+
+    setStatus('CONNECTED', 'connected');
+  } catch (e) {
+    toast(e.message, 'error');
+    setStatus('ERROR', 'error');
+  }
+
+  setBusy(false);
+}
+
+function renderExpirations() {
+  const el   = document.getElementById('exp-list');
+  const now  = Date.now();
+
+  if (!S.expirations.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:10px;padding:4px">None found</div>';
+    return;
+  }
+
+  el.innerHTML = S.expirations.map(d => {
+    const ms  = new Date(d + 'T00:00:00').getTime();
+    const dte = Math.max(0, Math.round((ms - now) / 86400000));
+    const act = d === S.selectedExp;
+    return `<div class="exp-pill ${act ? 'active' : ''}" onclick="selectExp('${d}')">
+      <span>${fmtDate(d)}</span>
+      <span class="exp-dte">${dte}d</span>
+    </div>`;
+  }).join('');
+}
+
+async function selectExp(exp) {
+  S.selectedExp = exp;
+  renderExpirations();
+  await loadChain();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CHAIN + GREEKS
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadChain() {
+  if (!S.selectedExp || !S.ticker || !S.accountId) return;
+
+  setBusy(true);
+  setStatus('Scanning…');
+  showChainLoader();
+
+  try {
+    // Fetch underlying quote + option chain in parallel
+    const [quoteRes, chainRes] = await Promise.all([
+      api('POST', '/api/quotes', {
+        accountId: S.accountId,
+        instruments: [{ symbol: S.ticker, type: 'EQUITY' }],
+      }),
+      api('POST', '/api/chain', {
+        accountId:      S.accountId,
+        instrument:     { symbol: S.ticker, type: 'EQUITY' },
+        expirationDate: S.selectedExp,
+      }),
+    ]);
+
+    // Underlying price
+    const q = quoteRes.quotes?.[0];
+    if (q) {
+      S.underlying = { last: q.last, bid: q.bid, ask: q.ask };
+      updateHeaderQuote();
+    }
+
+    S.calls = chainRes.calls || [];
+    S.puts  = chainRes.puts  || [];
+    S.greeks = {};
+
+    // ── Render immediately with price data (no Greeks yet) ────────────────
+    S.lastScan = new Date();
+    renderChain();
+    document.getElementById('chain-meta').textContent =
+      `${S.calls.length}C · ${S.puts.length}P · exp ${S.selectedExp} · loading greeks…`;
+    setStatus('CONNECTED', 'connected');
+    setBusy(false);
+
+    // ── Stream Greeks: visible strikes first, then background rest ─────────
+    streamGreeks();
+
+  } catch (e) {
+    toast(e.message, 'error');
+    setStatus('ERROR', 'error');
+    showChainEmpty(e.message);
+    setBusy(false);
+  }
+}
+
+// Build ordered list of OSI symbols — visible (ATM ±20) first, then rest
+function orderedSymsForGreeks() {
+  const price = S.underlying ? parseFloat(S.underlying.last || S.underlying.ask || 0) : 0;
+  const all = [
+    ...S.calls.map(o => ({ sym: o.instrument?.symbol, strike: parseOSI(o.instrument?.symbol)?.strike || 0 })),
+    ...S.puts.map(o =>  ({ sym: o.instrument?.symbol, strike: parseOSI(o.instrument?.symbol)?.strike || 0 })),
+  ].filter(o => o.sym);
+
+  if (price > 0) {
+    // Sort by distance from current price so ATM loads first
+    all.sort((a, b) => Math.abs(a.strike - price) - Math.abs(b.strike - price));
+  }
+  return all.map(o => o.sym);
+}
+
+async function streamGreeks() {
+  const syms = orderedSymsForGreeks();
+  if (!syms.length) return;
+
+  // Batches of 20 — keeps GET URL under browser limits
+  const batches = [];
+  for (let i = 0; i < syms.length; i += 20) batches.push(syms.slice(i, i + 20));
+
+  let loaded = 0;
+  for (const batch of batches) {
+    // Stop if user loaded a different expiry while we were streaming
+    if (!S.selectedExp) break;
+    try {
+      const params = new URLSearchParams({ accountId: S.accountId });
+      batch.forEach(s => params.append('osiSymbols', s));
+      const res = await api('GET', `/api/greeks?${params}`);
+      (res.greeks || []).forEach(g => { S.greeks[g.symbol] = g.greeks; });
+      loaded += batch.length;
+
+      // Re-render after every batch so Greeks stream in visually
+      renderChain();
+      document.getElementById('chain-meta').textContent =
+        `${S.calls.length}C · ${S.puts.length}P · exp ${S.selectedExp} · greeks ${loaded}/${syms.length}`;
+    } catch (e) {
+      console.warn('Greeks batch failed:', e.message);
+    }
+  }
+
+  // Final render + status
+  document.getElementById('chain-meta').textContent =
+    `${S.calls.length}C · ${S.puts.length}P · exp ${S.selectedExp} · ${fmtTime(S.lastScan)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  RENDER CHAIN TABLE
+// ═══════════════════════════════════════════════════════════════════════════
+function renderChain() {
+  const container = document.getElementById('chain-scroll');
+  const showType  = document.getElementById('type-sel').value;
+  const minIV     = parseFloat(document.getElementById('iv-inp').value) || 0;
+  const price     = S.underlying ? parseFloat(S.underlying.last || S.underlying.ask || 0) : 0;
+
+  // ── Group calls + puts by strike ──────────────────────────────────────
+  const map = new Map();
+
+  const addToMap = (opts, side) => {
+    opts.forEach(opt => {
+      const info = parseOSI(opt.instrument?.symbol);
+      if (!info) return;
+      const k = info.strike;
+      if (!map.has(k)) map.set(k, { strike: k, call: null, put: null });
+      map.get(k)[side] = {
+        ...opt,
+        _info:   info,
+        _greeks: S.greeks[opt.instrument?.symbol] || null,
+      };
+    });
+  };
+
+  addToMap(S.calls, 'call');
+  addToMap(S.puts,  'put');
+
+  let rows = [...map.values()].sort((a, b) => a.strike - b.strike);
+
+  // ── Filters ───────────────────────────────────────────────────────────
+  if (minIV > 0) {
+    rows = rows.filter(r =>
+      getIV(r.call) >= minIV || getIV(r.put) >= minIV
+    );
+  }
+
+  if (S.unusualOnly) {
+    rows = rows.filter(r => isUnusual(r.call) || isUnusual(r.put));
+  }
+
+  // ── Limit strikes around ATM ──────────────────────────────────────────
+  const strikesLimit = parseInt(document.getElementById('strikes-sel')?.value || '0');
+  if (strikesLimit > 0 && price > 0) {
+    let atmIdx = 0, minDist = Infinity;
+    rows.forEach((r, i) => {
+      const d = Math.abs(r.strike - price);
+      if (d < minDist) { minDist = d; atmIdx = i; }
+    });
+    rows = rows.slice(
+      Math.max(0, atmIdx - strikesLimit),
+      atmIdx + strikesLimit + 1
+    );
+  }
+
+  if (!rows.length) {
+    showChainEmpty('No options match the current filters.');
+    return;
+  }
+
+  const showC = showType === 'both' || showType === 'calls';
+  const showP = showType === 'both' || showType === 'puts';
+
+  // ── Build table ───────────────────────────────────────────────────────
+  const callHeaders = showC ? `
+    <th class="w-iv">IV</th>
+    <th class="w-delta">Δ</th>
+    <th class="w-theta">Θ</th>
+    <th class="w-vol">Vol</th>
+    <th class="w-oi">OI</th>
+    <th class="w-bid">Bid</th>
+    <th class="w-ask">Ask</th>
+    <th class="w-add"></th>
+  ` : '';
+
+  const putHeaders = showP ? `
+    <th class="w-add"></th>
+    <th class="w-bid">Bid</th>
+    <th class="w-ask">Ask</th>
+    <th class="w-oi">OI</th>
+    <th class="w-vol">Vol</th>
+    <th class="w-theta">Θ</th>
+    <th class="w-delta">Δ</th>
+    <th class="w-iv">IV</th>
+  ` : '';
+
+  const tbody = rows.map(r => buildRow(r, price, showC, showP)).join('');
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          ${callHeaders}
+          <th class="w-strike strike-hdr">STRIKE</th>
+          ${putHeaders}
+        </tr>
+      </thead>
+      <tbody>${tbody}</tbody>
+    </table>
+  `;
+}
+
+function buildRow(r, price, showC, showP) {
+  const { strike, call, put } = r;
+  const itmC  = price > 0 && strike < price;
+  const itmP  = price > 0 && strike > price;
+  const isATM = price > 0 && Math.abs(strike - price) / price < 0.006;
+  const highIV = getIV(call) > 60 || getIV(put) > 60;
+  const rowCls = highIV ? 'high-iv' : '';
+
+  const strikeTd = `<td class="strike-td">
+    ${fmtStrike(strike)}${isATM ? '<span class="tag-atm">ATM</span>' : ''}
+  </td>`;
+
+  return `<tr class="${rowCls}">
+    ${showC ? callCells(call, itmC) : ''}
+    ${strikeTd}
+    ${showP ? putCells(put, itmP) : ''}
+  </tr>`;
+}
+
+function callCells(opt, itm) {
+  const bg = itm ? 'var(--itm-call)' : 'var(--call-bg)';
+  if (!opt) return `<td colspan="8" style="background:${bg};opacity:0.2;text-align:center">—</td>`;
+  const g  = opt._greeks;
+  const iv = getIV(opt);
+  const ivCls = iv > 80 ? 'iv-high' : iv > 40 ? 'iv-med' : '';
+  const unusual = isUnusual(opt);
+  const legData = encodeURIComponent(JSON.stringify({
+    symbol:  opt.instrument.symbol,
+    type:    'CALL',
+    strike:  opt._info.strike,
+    expiry:  opt._info.date,
+    bid:     opt.bid,
+    ask:     opt.ask,
+  }));
+  const td = (cls, content) =>
+    `<td style="background:${bg}" ${cls ? `class="${cls}"` : ''}>${content}</td>`;
+
+  return `
+    ${td('', `<span class="${ivCls}">${iv > 0 ? iv.toFixed(0) + '%' : '—'}</span>
+              ${unusual ? '<span class="badge-unusual">⚡</span>' : ''}`)}
+    ${td('delta-c', g?.delta ? n(g.delta, 2) : '—')}
+    ${td('', g?.theta ? n(g.theta, 3) : '—')}
+    ${td('', fmtVol(opt.volume))}
+    ${td('', fmtVol(opt.openInterest))}
+    ${td('', opt.bid ? '$' + n(opt.bid, 2) : '—')}
+    ${td('ask-c', opt.ask ? '$' + n(opt.ask, 2) : '—')}
+    ${td('', `<button class="add-btn" onclick="addLeg(decodeURIComponent('${legData}'))">+ADD</button>`)}
+  `;
+}
+
+function putCells(opt, itm) {
+  const bg = itm ? 'var(--itm-put)' : 'var(--put-bg)';
+  if (!opt) return `<td colspan="8" style="background:${bg};opacity:0.2;text-align:center">—</td>`;
+  const g  = opt._greeks;
+  const iv = getIV(opt);
+  const ivCls = iv > 80 ? 'iv-high' : iv > 40 ? 'iv-med' : '';
+  const unusual = isUnusual(opt);
+  const legData = encodeURIComponent(JSON.stringify({
+    symbol:  opt.instrument.symbol,
+    type:    'PUT',
+    strike:  opt._info.strike,
+    expiry:  opt._info.date,
+    bid:     opt.bid,
+    ask:     opt.ask,
+  }));
+  const td = (cls, content) =>
+    `<td style="background:${bg}" ${cls ? `class="${cls}"` : ''}>${content}</td>`;
+
+  return `
+    ${td('', `<button class="add-btn" onclick="addLeg(decodeURIComponent('${legData}'))">+ADD</button>`)}
+    ${td('bid-p', opt.bid ? '$' + n(opt.bid, 2) : '—')}
+    ${td('', opt.ask ? '$' + n(opt.ask, 2) : '—')}
+    ${td('', fmtVol(opt.openInterest))}
+    ${td('', `${fmtVol(opt.volume)}${unusual ? '<span class="badge-unusual">⚡</span>' : ''}`)}
+    ${td('', g?.theta ? n(g.theta, 3) : '—')}
+    ${td('delta-p', g?.delta ? n(g.delta, 2) : '—')}
+    ${td('', `<span class="${ivCls}">${iv > 0 ? iv.toFixed(0) + '%' : '—'}</span>`)}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STRATEGY BUILDER
+// ═══════════════════════════════════════════════════════════════════════════
+function addLeg(jsonStr) {
+  const data = JSON.parse(jsonStr);
+  S.legs.push({ ...data, side: 'BUY', ratio: 1 });
+  renderLegs();
+  switchTab('builder');
+  toast(`Added ${data.type} $${data.strike} → strategy builder`, 'success');
+}
+
+function renderLegs() {
+  const wrap   = document.getElementById('legs-wrap');
+  const pfWrap = document.getElementById('preflight-wrap');
+  const badge  = document.getElementById('leg-badge');
+  const count  = document.getElementById('leg-count');
+
+  badge.textContent = S.legs.length;
+  badge.classList.toggle('hidden', S.legs.length === 0);
+  count.textContent = S.legs.length ? `(${S.legs.length} leg${S.legs.length > 1 ? 's' : ''})` : '';
+
+  if (!S.legs.length) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:11px;padding:10px 0;">
+      Click <strong style="color:var(--amber)">+ADD</strong> on any row in the Scanner to build a strategy.
+    </div>`;
+    if (pfWrap) pfWrap.classList.add('hidden');
+    const pw = document.getElementById('payoff-wrap');
+    if (pw) pw.style.display = 'none';
+    return;
+  }
+
+  // Build sorted strike lists from chain for dropdowns
+  const callStrikes = [], putStrikes = [];
+  S.calls.forEach(o => { const info = parseOSI(o.instrument?.symbol); if (info) callStrikes.push({strike:info.strike,opt:o}); });
+  S.puts.forEach(o  => { const info = parseOSI(o.instrument?.symbol); if (info) putStrikes.push({strike:info.strike,opt:o}); });
+  callStrikes.sort((a,b) => a.strike-b.strike);
+  putStrikes.sort((a,b) => a.strike-b.strike);
+
+  const netMid = S.legs.reduce((acc, leg) => {
+    const mid = (parseFloat(leg.bid||0)+parseFloat(leg.ask||0))/2;
+    return acc + (leg.side==='BUY' ? mid : -mid) * leg.ratio;
+  }, 0);
+
+  const limitEl = document.getElementById('limit-inp');
+  if (!limitEl.value) limitEl.value = Math.abs(netMid).toFixed(2);
+
+  wrap.innerHTML = `
+    <table class="legs-table">
+      <thead><tr>
+        <th>Type</th><th>Strike</th><th>Expiry</th><th>Side</th><th>Ratio</th><th>Mid</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${S.legs.map((leg, i) => {
+          const mid = ((parseFloat(leg.bid||0)+parseFloat(leg.ask||0))/2).toFixed(2);
+          const strikes = leg.type==='CALL' ? callStrikes : putStrikes;
+          const sopts = strikes.length
+            ? strikes.map(({strike}) => `<option value="${strike}" ${strike===leg.strike?'selected':''}>${'$'}${strike%1===0?strike.toFixed(0):strike.toFixed(2)}</option>`).join('')
+            : `<option value="${leg.strike}" selected>$${leg.strike}</option>`;
+          // Build expiry options from S.expirations; fall back to leg.expiry if not loaded yet
+          const expOpts = S.expirations.length
+            ? S.expirations.map(d => `<option value="${d}" ${d===leg.expiry?'selected':''}>${d}</option>`).join('')
+            : `<option value="${leg.expiry}" selected>${leg.expiry}</option>`;
+          return `<tr>
+            <td style="color:${leg.type==='CALL'?'var(--green)':'var(--red)'};font-weight:700">${leg.type}</td>
+            <td><select class="leg-select" style="min-width:76px;font-weight:700;color:var(--text)"
+                        onchange="updateLegStrike(${i},parseFloat(this.value))">${sopts}</select></td>
+            <td><select class="leg-select" style="min-width:96px;color:var(--text)"
+                        onchange="updateLegExpiry(${i},this.value)">${expOpts}</select></td>
+            <td><select class="leg-select" style="color:${leg.side==='BUY'?'var(--green)':'var(--red)'}"
+                        onchange="updateLeg(${i},'side',this.value);this.style.color=this.value==='BUY'?'var(--green)':'var(--red)'">
+                  <option value="BUY"  ${leg.side==='BUY' ?'selected':''}>BUY</option>
+                  <option value="SELL" ${leg.side==='SELL'?'selected':''}>SELL</option>
+                </select></td>
+            <td><input class="leg-input" type="number" value="${leg.ratio}" min="1" max="10"
+                       onchange="updateLeg(${i},'ratio',parseInt(this.value)||1)"></td>
+            <td style="color:var(--muted2)">$${mid}</td>
+            <td><button class="btn-danger" onclick="removeLeg(${i})">✕</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="font-size:9px;color:var(--muted2);margin-top:8px;text-align:right">
+      Estimated net mid: <strong style="color:${netMid>=0?'var(--red)':'var(--green)'}">
+      ${netMid>=0?'DEBIT':'CREDIT'} $${Math.abs(netMid).toFixed(2)}</strong>
+    </div>`;
+
+  if (pfWrap) pfWrap.classList.remove('hidden');
+  drawPayoff();
+}
+
+function updateLeg(i, key, val) {
+  S.legs[i][key] = val;
+  renderLegs();
+}
+
+function updateLegStrike(i, newStrike) {
+  const leg  = S.legs[i];
+  const pool = leg.type==='CALL' ? S.calls : S.puts;
+  const opt  = pool.find(o => { const info=parseOSI(o.instrument?.symbol); return info && info.strike===newStrike; });
+  if (!opt) return;
+  const info = parseOSI(opt.instrument?.symbol);
+  S.legs[i]  = {...leg, strike:newStrike, symbol:opt.instrument.symbol, bid:opt.bid, ask:opt.ask, expiry:info?.date||leg.expiry};
+  document.getElementById('limit-inp').value = '';
+  S.preflight = null;
+  document.getElementById('place-btn').disabled = true;
+  renderLegs();
+}
+
+// When expiry changes: fetch chain for new date, find matching strike, update leg
+async function updateLegExpiry(i, newExpiry) {
+  const leg = S.legs[i];
+  if (leg.expiry === newExpiry) return;
+
+  // Optimistically update expiry so dropdown doesn't snap back
+  S.legs[i] = { ...leg, expiry: newExpiry };
+  renderLegs();
+
+  if (!S.accountId || !S.ticker) return;
+
+  try {
+    // Fetch chain for the new expiry date
+    const chainRes = await api('POST', '/api/chain', {
+      accountId:      S.accountId,
+      instrument:     { symbol: S.ticker, type: 'EQUITY' },
+      expirationDate: newExpiry,
+    });
+
+    const pool = leg.type === 'CALL' ? (chainRes.calls || []) : (chainRes.puts || []);
+
+    // Find the option at the closest strike to the current leg strike
+    let best = null, bestDist = Infinity;
+    pool.forEach(o => {
+      const info = parseOSI(o.instrument?.symbol);
+      if (!info) return;
+      const d = Math.abs(info.strike - leg.strike);
+      if (d < bestDist) { bestDist = d; best = o; }
+    });
+
+    if (best) {
+      const info = parseOSI(best.instrument?.symbol);
+      S.legs[i] = {
+        ...S.legs[i],
+        symbol: best.instrument.symbol,
+        strike: info?.strike ?? leg.strike,
+        bid:    best.bid,
+        ask:    best.ask,
+        expiry: newExpiry,
+      };
+      // Fetch greeks for the new contract
+      try {
+        const params = new URLSearchParams({ accountId: S.accountId });
+        params.append('osiSymbols', best.instrument.symbol);
+        const gr = await api('GET', `/api/greeks?${params}`);
+        (gr.greeks || []).forEach(g => { S.greeks[g.symbol] = g.greeks; });
+      } catch(e) { /* greeks optional */ }
+    }
+  } catch(e) {
+    toast('Could not load chain for ' + newExpiry + ': ' + e.message, 'error');
+  }
+
+  document.getElementById('limit-inp').value = '';
+  S.preflight = null;
+  document.getElementById('place-btn').disabled = true;
+  renderLegs();
+}
+
+function removeLeg(i) {
+  S.legs.splice(i, 1);
+  S.preflight = null;
+  document.getElementById('place-btn').disabled = true;
+  renderLegs();
+}
+
+function clearLegs() {
+  S.legs = [];
+  S.preflight = null;
+  document.getElementById('limit-inp').value = '';
+  document.getElementById('place-btn').disabled = true;
+  document.getElementById('pf-box').innerHTML =
+    '<div style="color:var(--muted);font-size:11px;">Run preflight to see cost estimate.</div>';
+  renderLegs();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PREFLIGHT
+// ═══════════════════════════════════════════════════════════════════════════
+async function runPreflight() {
+  if (S.legs.length < 2) { toast('Add at least 2 legs', 'error'); return; }
+  if (!S.accountId)       { toast('Select an account', 'error'); return; }
+
+  const qty   = parseInt(document.getElementById('qty-inp').value) || 1;
+  const limit = document.getElementById('limit-inp').value || '0.01';
+
+  const legs = S.legs.map(leg => ({
+    instrument:          { symbol: leg.symbol, type: 'OPTION' },
+    side:                leg.side,
+    openCloseIndicator:  'OPEN',
+    ratioQuantity:       leg.ratio,
+  }));
+
+  setStatus('Running preflight…');
+  toast('Running preflight…', 'info');
+
+  try {
+    const data = await api('POST', '/api/preflight', {
+      accountId:     S.accountId,
+      orderType:     'LIMIT',
+      expiration:    { timeInForce: 'DAY' },
+      quantity:      String(qty),
+      limitPrice:    limit,
+      legs,
+      validateOrder: true,
+    });
+
+    S.preflight = data;
+    renderPreflight(data);
+    document.getElementById('place-btn').disabled = false;
+    setStatus('CONNECTED', 'connected');
+    toast('Preflight complete', 'success');
+  } catch (e) {
+    toast('Preflight failed: ' + e.message, 'error');
+    setStatus('ERROR', 'error');
+  }
+}
+
+function renderPreflight(d) {
+  const cost    = parseFloat(d.estimatedCost    || 0);
+  const bp      = parseFloat(d.buyingPowerRequirement || 0);
+  const proceed = parseFloat(d.estimatedProceeds || 0);
+  const isCredit = proceed > 0 && cost <= 0;
+
+  document.getElementById('pf-box').innerHTML = `
+    <div style="font-size:10px;color:var(--amber);font-weight:700;letter-spacing:1px;margin-bottom:12px;">
+      ${d.strategyName || 'CUSTOM STRATEGY'} · ${d.baseSymbol || S.ticker}
+    </div>
+    <div class="preflight-grid">
+      <div>
+        <div class="pf-key">Est. Cost</div>
+        <div class="pf-val ${isCredit ? 'pf-credit' : 'pf-debit'}">
+          ${isCredit ? '+$' + proceed.toFixed(2) : '-$' + Math.abs(cost).toFixed(2)}
+        </div>
+      </div>
+      <div>
+        <div class="pf-key">Buying Power</div>
+        <div class="pf-val">$${Math.abs(bp).toFixed(2)}</div>
+      </div>
+      <div>
+        <div class="pf-key">Commission</div>
+        <div class="pf-val ${d.estimatedCommission === '0.00' ? 'pf-free' : ''}">
+          ${d.estimatedCommission === '0.00' ? 'FREE ✓' : '$' + d.estimatedCommission}
+        </div>
+      </div>
+      <div>
+        <div class="pf-key">ORF Fee</div>
+        <div class="pf-val" style="font-size:13px">$${d.regulatoryFees?.orfFee || '—'}</div>
+      </div>
+      <div>
+        <div class="pf-key">OCC Fee</div>
+        <div class="pf-val" style="font-size:13px">$${d.regulatoryFees?.occFee || '—'}</div>
+      </div>
+      <div>
+        <div class="pf-key">Margin Impact</div>
+        <div class="pf-val" style="font-size:13px">$${d.marginImpact?.marginUsageImpact || '—'}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ORDER PLACEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+function openModal() {
+  if (!S.preflight) { toast('Run preflight first', 'error'); return; }
+
+  const qty   = document.getElementById('qty-inp').value;
+  const limit = document.getElementById('limit-inp').value;
+  const d     = S.preflight;
+
+  document.getElementById('modal-detail').innerHTML = `
+    <strong>Strategy:</strong> ${d.strategyName || 'CUSTOM'}<br>
+    <strong>Ticker:</strong> ${d.baseSymbol || S.ticker}<br>
+    <strong>Contracts:</strong> ${qty}<br>
+    <strong>Limit price:</strong> $${limit}<br>
+    <strong>Est. cost:</strong> $${d.estimatedCost}<br>
+    <strong>Buying power req.:</strong> $${d.buyingPowerRequirement}<br>
+    <br>
+    <span style="color:var(--red)">This will execute a real order in your live account.</span>
+  `;
+
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+async function placeOrder() {
+  closeModal();
+
+  const qty   = parseInt(document.getElementById('qty-inp').value) || 1;
+  const limit = document.getElementById('limit-inp').value;
+
+  if (!limit || isNaN(parseFloat(limit))) {
+    toast('Enter a valid limit price', 'error'); return;
+  }
+
+  const legs = S.legs.map(leg => ({
+    instrument:         { symbol: leg.symbol, type: 'OPTION' },
+    side:               leg.side,
+    openCloseIndicator: 'OPEN',
+    ratioQuantity:      leg.ratio,
+  }));
+
+  setStatus('Placing order…');
+  document.getElementById('place-btn').disabled = true;
+
+  try {
+    const data = await api('POST', '/api/place-order', {
+      accountId:  S.accountId,
+      quantity:   qty,
+      type:       'LIMIT',
+      limitPrice: String(limit),
+      expiration: { timeInForce: 'DAY' },
+      legs,
+    });
+
+    toast(`Order submitted · ${data.orderId?.slice(0, 8)}…`, 'success');
+    setStatus('CONNECTED', 'connected');
+    clearLegs();
+  } catch (e) {
+    toast('Order failed: ' + e.message, 'error');
+    setStatus('ERROR', 'error');
+    document.getElementById('place-btn').disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  AUTO-REFRESH
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleAutoRefresh(on) {
+  clearInterval(S.refreshTimer);
+  S.refreshTimer = null;
+  if (on && S.selectedExp) {
+    const ms = parseInt(document.getElementById('refresh-sel').value) * 1000;
+    S.refreshTimer = setInterval(loadChain, ms);
+  }
+}
+
+function resetAutoRefresh() {
+  if (document.getElementById('refresh-chk').checked) {
+    toggleAutoRefresh(false);
+    toggleAutoRefresh(true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  ['scanner','builder','gex','analytics'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('hidden', tab !== t);
+    const btn = document.getElementById('tab-' + t + '-btn');
+    if (btn) btn.classList.toggle('active', tab === t);
+  });
+  if (tab === 'gex')       loadGEX();
+  if (tab === 'analytics') loadAnalytics();
+}
+
+function toggleUnusual() {
+  S.unusualOnly = !S.unusualOnly;
+  document.getElementById('unusual-btn').classList.toggle('active', S.unusualOnly);
+  renderChain();
+}
+
+function setBusy(on) {
+  document.getElementById('loading-bar').classList.toggle('hidden', !on);
+  document.getElementById('load-btn').disabled = on;
+}
+
+function setStatus(msg, cls = '') {
+  const el = document.getElementById('hdr-status');
+  el.textContent = msg;
+  el.className   = cls;
+}
+
+function updateHeaderQuote() {
+  const u = S.underlying;
+  if (!u) return;
+  const price = parseFloat(u.last || u.ask || 0);
+  document.getElementById('hdr-quote').classList.remove('hidden');
+  document.getElementById('hdr-ticker').textContent = S.ticker;
+  document.getElementById('hdr-price').textContent  = '$' + price.toFixed(2);
+  document.getElementById('hdr-ts').textContent     = 'as of ' + fmtTime(new Date());
+}
+
+function showChainLoader() {
+  document.getElementById('chain-scroll').innerHTML = `
+    <div class="empty-state">
+      <div class="spinner"></div>
+      <div class="empty-msg">Loading ${S.ticker} chain for ${S.selectedExp}…</div>
+    </div>`;
+}
+
+function showChainEmpty(msg) {
+  document.getElementById('chain-scroll').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-glyph">◎</div>
+      <div class="empty-msg">${msg}</div>
+    </div>`;
+}
+
+// ── Strategy template notes ───────────────────────────────────────────────
+const TPL_DESC = {
+  bull_call:            '📗 Bull Call Spread — BUY ATM call + SELL OTM call. Bullish, defined risk/reward.',
+  bull_put_spread:      '🟢 Bull Put Spread — SELL OTM put + BUY lower put. Bullish credit spread.',
+  cash_secured_put:     '💰 Cash-Secured Put — SELL OTM put, hold cash as collateral. Bullish income.',
+  covered_call:         '📋 Covered Call — SELL OTM call against long stock. Income on existing position.',
+  synthetic_long:       '⬆ Synthetic Long — BUY ATM call + SELL ATM put. Replicates owning stock.',
+  bear_put:             '📕 Bear Put Spread — BUY ATM put + SELL OTM put. Bearish, defined risk.',
+  bear_call_spread:     '🔴 Bear Call Spread — SELL OTM call + BUY higher call. Bearish credit spread.',
+  protective_put:       '🛡 Protective Put — BUY ATM put as hedge against long stock.',
+  synthetic_short:      '⬇ Synthetic Short — SELL ATM call + BUY ATM put. Replicates short stock.',
+  iron_condor:          '📊 Iron Condor — SELL OTM call + BUY further call + SELL OTM put + BUY further put. Neutral.',
+  iron_butterfly:       '🦋 Iron Butterfly — SELL ATM call + BUY OTM call + SELL ATM put + BUY OTM put. Tight condor.',
+  butterfly:            '🦋 Butterfly Spread — BUY low call + SELL 2× ATM call + BUY high call. Pins ATM.',
+  broken_wing_butterfly:'🦅 Broken Wing Butterfly — Asymmetric butterfly, wider lower wing for small credit.',
+  calendar:             '📅 Calendar Spread — SELL near-term ATM call + BUY longer-dated same-strike call.',
+  diagonal:             '📐 Diagonal Spread — SELL near-term OTM call + BUY further-dated lower-strike call.',
+  straddle:             '📐 Straddle — BUY ATM call + BUY ATM put. Profits from large move either direction.',
+  strangle:             '🔀 Strangle — BUY OTM call + BUY OTM put. Cheaper than straddle, needs bigger move.',
+  jade_lizard:          '🦎 Jade Lizard — SELL OTM call + SELL OTM put spread. No upside risk if credit > call width.',
+  ratio_spread:         '⚖ Ratio Spread — BUY 1 ATM call + SELL 2 OTM calls. Free entry, unlimited upside risk.',
+  condor:               '🦅 Condor — BUY low call + SELL 2 OTM calls at diff strikes + BUY high call.',
+};
+
+function showTpl(key) {
+  const el = document.getElementById('tpl-note');
+  el.style.display = 'block';
+  el.textContent = TPL_DESC[key] || '';
+
+  if (!S.calls.length && !S.puts.length) {
+    el.textContent += ' ⚠ Load a ticker and expiration in the Scanner first.';
+    return;
+  }
+
+  const price = S.underlying ? parseFloat(S.underlying.last || S.underlying.ask || 0) : 0;
+  const callMap = {}, putMap = {};
+  S.calls.forEach(o => { const info = parseOSI(o.instrument?.symbol); if (info) callMap[info.strike] = o; });
+  S.puts.forEach(o  => { const info = parseOSI(o.instrument?.symbol); if (info) putMap[info.strike]  = o; });
+  const cs = Object.keys(callMap).map(Number).sort((a,b) => a-b);
+  const ps = Object.keys(putMap).map(Number).sort((a,b) => a-b);
+
+  function atmIdx(arr) {
+    let idx=0, best=Infinity;
+    arr.forEach((s,i) => { const d=Math.abs(s-price); if(d<best){best=d;idx=i;} });
+    return idx;
+  }
+  function at(arr,i) { return arr[Math.max(0,Math.min(i,arr.length-1))]; }
+  function leg(opt, side, type) {
+    if (!opt) return null;
+    const info = parseOSI(opt.instrument?.symbol);
+    if (!info) return null;
+    return { symbol:opt.instrument.symbol, type, strike:info.strike, expiry:info.date, bid:opt.bid, ask:opt.ask, side, ratio:1 };
+  }
+
+  const ci=atmIdx(cs), pi=atmIdx(ps);
+  let legs=[];
+
+  switch(key) {
+    case 'bull_call':
+      legs=[leg(callMap[at(cs,ci)],'BUY','CALL'), leg(callMap[at(cs,ci+1)],'SELL','CALL')]; break;
+    case 'bull_put_spread':
+      legs=[leg(putMap[at(ps,pi)],'SELL','PUT'), leg(putMap[at(ps,pi-1)],'BUY','PUT')]; break;
+    case 'cash_secured_put':
+      legs=[leg(putMap[at(ps,pi-1)],'SELL','PUT')];
+      el.textContent += ' Keep cash = strike × 100 as collateral.'; break;
+    case 'covered_call':
+      legs=[leg(callMap[at(cs,ci+1)],'SELL','CALL')];
+      el.textContent += ' ⚠ Assumes you own 100 shares.'; break;
+    case 'synthetic_long':
+      legs=[leg(callMap[at(cs,ci)],'BUY','CALL'), leg(putMap[at(ps,pi)],'SELL','PUT')]; break;
+    case 'bear_put':
+      legs=[leg(putMap[at(ps,pi)],'BUY','PUT'), leg(putMap[at(ps,pi-1)],'SELL','PUT')]; break;
+    case 'bear_call_spread':
+      legs=[leg(callMap[at(cs,ci+1)],'SELL','CALL'), leg(callMap[at(cs,ci+2)],'BUY','CALL')]; break;
+    case 'protective_put':
+      legs=[leg(putMap[at(ps,pi)],'BUY','PUT')];
+      el.textContent += ' ⚠ Assumes you own 100 shares.'; break;
+    case 'synthetic_short':
+      legs=[leg(callMap[at(cs,ci)],'SELL','CALL'), leg(putMap[at(ps,pi)],'BUY','PUT')]; break;
+    case 'iron_condor':
+      legs=[leg(callMap[at(cs,ci+1)],'SELL','CALL'), leg(callMap[at(cs,ci+2)],'BUY','CALL'),
+            leg(putMap[at(ps,pi-1)],'SELL','PUT'),   leg(putMap[at(ps,pi-2)],'BUY','PUT')]; break;
+    case 'iron_butterfly':
+      legs=[leg(callMap[at(cs,ci)],'SELL','CALL'),  leg(callMap[at(cs,ci+2)],'BUY','CALL'),
+            leg(putMap[at(ps,pi)], 'SELL','PUT'),   leg(putMap[at(ps,pi-2)], 'BUY','PUT')]; break;
+    case 'butterfly':
+      legs=[leg(callMap[at(cs,ci-1)],'BUY','CALL'),
+            {...leg(callMap[at(cs,ci)],'SELL','CALL'), ratio:2},
+            leg(callMap[at(cs,ci+1)],'BUY','CALL')]; break;
+    case 'broken_wing_butterfly':
+      legs=[leg(callMap[at(cs,ci-1)],'BUY','CALL'),
+            {...leg(callMap[at(cs,ci)],'SELL','CALL'), ratio:2},
+            leg(callMap[at(cs,ci+2)],'BUY','CALL')]; break;
+    case 'calendar':
+      legs=[leg(callMap[at(cs,ci)],'SELL','CALL'), leg(callMap[at(cs,ci)],'BUY','CALL')];
+      el.textContent += ' ⚠ Change the BUY leg expiry to a later date.'; break;
+    case 'diagonal':
+      legs=[leg(callMap[at(cs,ci+1)],'SELL','CALL'), leg(callMap[at(cs,ci)],'BUY','CALL')];
+      el.textContent += ' ⚠ Change the BUY leg expiry to a later date.'; break;
+    case 'straddle':
+      legs=[leg(callMap[at(cs,ci)],'BUY','CALL'), leg(putMap[at(ps,pi)],'BUY','PUT')]; break;
+    case 'strangle':
+      legs=[leg(callMap[at(cs,ci+1)],'BUY','CALL'), leg(putMap[at(ps,pi-1)],'BUY','PUT')]; break;
+    case 'jade_lizard':
+      legs=[leg(callMap[at(cs,ci+1)],'SELL','CALL'),
+            leg(putMap[at(ps,pi-1)],'SELL','PUT'),
+            leg(putMap[at(ps,pi-2)],'BUY','PUT')]; break;
+    case 'ratio_spread':
+      legs=[leg(callMap[at(cs,ci)],'BUY','CALL'),
+            {...leg(callMap[at(cs,ci+2)],'SELL','CALL'), ratio:2}];
+      el.textContent += ' ⚠ Unlimited upside risk above short strikes.'; break;
+    case 'condor':
+      legs=[leg(callMap[at(cs,ci-1)],'BUY','CALL'), leg(callMap[at(cs,ci)],  'SELL','CALL'),
+            leg(callMap[at(cs,ci+1)],'SELL','CALL'), leg(callMap[at(cs,ci+2)],'BUY','CALL')]; break;
+    default:
+      el.textContent += ' ⚠ Unknown strategy key: ' + key; return;
+  }
+
+  legs = legs.filter(Boolean);
+  if (!legs.length) { el.textContent += ' ⚠ Could not build legs — no chain data.'; return; }
+
+  S.legs = legs;
+  document.getElementById('limit-inp').value = '';
+  document.getElementById('place-btn').disabled = true;
+  S.preflight = null;
+  renderLegs();
+  updateSliderRange();
+  switchTab('builder');
+  toast(legs.length + ' legs added — override strikes/sides as needed', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MATH HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Parse OSI symbol → { baseSymbol, strike, optType, date }
+// OSI format: [SYMBOL padded to 6] [YYMMDD] [C/P] [8-digit strike in thousandths]
+function parseOSI(sym) {
+  if (!sym) return null;
+  const s = sym.trim();
+  if (s.length < 15) return null;
+  try {
+    const strike     = parseInt(s.slice(-8)) / 1000;
+    const optType    = s.slice(-9, -8);
+    const dateStr    = s.slice(-15, -9);
+    const baseSymbol = s.slice(0, -15).trim();
+    const yr  = 2000 + parseInt(dateStr.slice(0, 2));
+    const mo  = parseInt(dateStr.slice(2, 4));
+    const dy  = parseInt(dateStr.slice(4, 6));
+    return {
+      baseSymbol,
+      strike,
+      optType: optType === 'C' ? 'CALL' : 'PUT',
+      date: `${yr}-${String(mo).padStart(2,'0')}-${String(dy).padStart(2,'0')}`,
+    };
+  } catch { return null; }
+}
+
+function getIV(opt) {
+  const iv = opt?._greeks?.impliedVolatility;
+  return iv ? parseFloat(iv) * 100 : 0;
+}
+
+// Volume > 50% of OI AND volume > 500 = unusual activity
+function isUnusual(opt) {
+  if (!opt) return false;
+  const vol = opt.volume || 0;
+  const oi  = opt.openInterest || 0;
+  return oi > 0 && vol > oi * 0.5 && vol > 500;
+}
+
+function fmtVol(n) {
+  if (n === undefined || n === null) return '—';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+  return String(n);
+}
+
+function fmtStrike(s) {
+  return '$' + (s % 1 === 0 ? s.toFixed(0) : s.toFixed(2));
+}
+
+function fmtDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function n(v, decimals) {
+  return parseFloat(v).toFixed(decimals);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════════════════════
+let _toastTimer;
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent  = msg;
+  el.className    = type;
+  el.style.display = 'block';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 4500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════════════════════════════
+function setTheme(t) {
+  if (t==='auto') document.documentElement.removeAttribute('data-theme');
+  else            document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('pub_theme', t);
+  ['light','auto','dark'].forEach(id => {
+    const el = document.getElementById('theme-'+id);
+    if (el) el.classList.toggle('active', id===t);
+  });
+  drawPayoff();
+}
+(function(){ setTheme(localStorage.getItem('pub_theme')||'auto'); })();
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PAYOFF + BLACK-SCHOLES
+// ═══════════════════════════════════════════════════════════════════════════
+function normCDF(x) {
+  const sign=x<0?-1:1; x=Math.abs(x)/Math.SQRT2;
+  const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
+  return 0.5*(1+sign*y);
+}
+function bsPrice(S0,K,T,r,sigma,isCall) {
+  if (T<=0||sigma<=0||S0<=0||K<=0) return isCall?Math.max(0,S0-K):Math.max(0,K-S0);
+  const d1=(Math.log(S0/K)+(r+0.5*sigma*sigma)*T)/(sigma*Math.sqrt(T)), d2=d1-sigma*Math.sqrt(T);
+  return isCall ? S0*normCDF(d1)-K*Math.exp(-r*T)*normCDF(d2)
+                : K*Math.exp(-r*T)*normCDF(-d2)-S0*normCDF(-d1);
+}
+function getDTE() {
+  if (!S.selectedExp) return 30;
+  return Math.max(1, Math.round((new Date(S.selectedExp+'T00:00:00') - new Date()) / 86400000));
+}
+function getSliderT() {
+  const el = document.getElementById('payoff-slider');
+  if (!el) return getDTE() / 365.25;
+  const dte  = getDTE();
+  const days = Math.round(parseFloat(el.value) / 100 * dte);
+  return Math.max(0, dte - days) / 365.25;
+}
+function onPayoffSlider(val) {
+  const lbl = document.getElementById('slider-lbl');
+  const dte = getDTE();
+  const days = Math.round(parseFloat(val) / 100 * dte);
+  if (lbl) lbl.textContent = days === 0 ? 'Today' : days >= dte ? 'Expiry' : days + 'd';
+  drawPayoff();
+}
+function updateSliderRange() {
+  const el = document.getElementById('payoff-slider');
+  if (el) el.value = 0;
+  const lbl = document.getElementById('slider-lbl');
+  if (lbl) lbl.textContent = 'Today';
+}
+
+function calcPayoff(prices, atExpiry) {
+  if (!S.legs.length) return prices.map(()=>0);
+  const spot=S.underlying?parseFloat(S.underlying.last||0):0;
+  const T = atExpiry ? 0 : getSliderT();
+  const netPremium=S.legs.reduce((acc,leg)=>{
+    const mid=(parseFloat(leg.bid||0)+parseFloat(leg.ask||0))/2;
+    return acc+(leg.side==='BUY'?mid:-mid)*leg.ratio;
+  },0);
+  return prices.map(price=>{
+    let pnl=-netPremium;
+    S.legs.forEach(leg=>{
+      const isCall=leg.type==='CALL', K=leg.strike, sign=leg.side==='BUY'?1:-1;
+      const iv=parseFloat(S.greeks[leg.symbol]?.impliedVolatility||0.25);
+      pnl+=sign*(atExpiry?(isCall?Math.max(0,price-K):Math.max(0,K-price)):bsPrice(price,K,T,0.045,iv,isCall))*leg.ratio;
+    });
+    return pnl*100;
+  });
+}
+function drawPayoff() {
+  const canvas=document.getElementById('payoff-canvas');
+  if (!canvas) return;
+  const wrap=document.getElementById('payoff-wrap');
+  if (!S.legs.length) { if(wrap) wrap.style.display='none'; return; }
+  if (wrap) wrap.style.display='flex';
+  // HiDPI-aware sizing
+  const rect = canvas.getBoundingClientRect();
+  const W = Math.max(rect.width  || canvas.offsetWidth  || canvas.parentElement?.offsetWidth  || 600, 100);
+  const H = Math.max(rect.height || canvas.offsetHeight || 180, 80);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.imageSmoothingEnabled = true;
+  const st=getComputedStyle(document.documentElement);
+  const cg=v=>st.getPropertyValue(v).trim();
+  const colGrid=cg('--chart-grid')||'rgba(255,255,255,0.04)';
+  const colZero=cg('--chart-zero')||'rgba(255,255,255,0.15)';
+  const colAmber=cg('--amber')||'#f5a623', colBlue=cg('--blue')||'#4e8cff';
+  const colText=cg('--muted2')||'#5a6a8a', colBg=cg('--panel2')||'#10131f';
+  const colGreen=cg('--green')||'#0fc98a', colRed=cg('--red')||'#f05151';
+  const spot=S.underlying?parseFloat(S.underlying.last||0):0;
+  const range=spot>0?spot*0.25:50, lo=spot-range, hi=spot+range;
+  const N=160, prices=Array.from({length:N},(_,i)=>lo+(hi-lo)*i/(N-1));
+  const eP=calcPayoff(prices,true), tP=calcPayoff(prices,false);
+  const all=[...eP,...tP].filter(isFinite);
+  const mn=Math.min(...all,0), mx=Math.max(...all,0), pad=Math.max(Math.abs(mx-mn)*0.12,20);
+  const yLo=mn-pad, yHi=mx+pad;
+  const PL=52,PR=12,PT=12,PB=24, cw=W-PL-PR, ch=H-PT-PB;
+  const px=i=>PL+(prices[i]-lo)/(hi-lo)*cw;
+  const py=v=>PT+(1-(v-yLo)/(yHi-yLo))*ch;
+  const pxV=v=>PL+(v-lo)/(hi-lo)*cw;
+  ctx.fillStyle=colBg; ctx.fillRect(0,0,W,H);
+  ctx.font='9px JetBrains Mono,monospace'; ctx.textAlign='right';
+  for(let g=0;g<=4;g++){
+    const v=yLo+(yHi-yLo)*g/4, y=py(v);
+    ctx.strokeStyle=colGrid; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(W-PR,y); ctx.stroke();
+    ctx.fillStyle=colText; ctx.fillText((v>=0?'+':'')+'$'+v.toFixed(0),PL-4,y+3);
+  }
+  const y0=py(0);
+  ctx.strokeStyle=colZero; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(PL,y0); ctx.lineTo(W-PR,y0); ctx.stroke(); ctx.setLineDash([]);
+  const gG=ctx.createLinearGradient(0,PT,0,y0); gG.addColorStop(0,colGreen+'33'); gG.addColorStop(1,colGreen+'00');
+  const gR=ctx.createLinearGradient(0,y0,0,H-PB); gR.addColorStop(0,colRed+'00'); gR.addColorStop(1,colRed+'44');
+  for(const [g,arr] of [[gG,eP],[gR,eP]]){
+    ctx.beginPath(); ctx.moveTo(px(0),py(arr[0]));
+    for(let i=1;i<N;i++) ctx.lineTo(px(i),py(arr[i]));
+    ctx.lineTo(px(N-1),y0); ctx.lineTo(px(0),y0); ctx.closePath();
+    ctx.fillStyle=g; ctx.fill();
+  }
+  ctx.strokeStyle=colBlue; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); for(let i=0;i<N;i++){i===0?ctx.moveTo(px(i),py(tP[i])):ctx.lineTo(px(i),py(tP[i]));} ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle=colAmber; ctx.lineWidth=2;
+  ctx.beginPath(); for(let i=0;i<N;i++){i===0?ctx.moveTo(px(i),py(eP[i])):ctx.lineTo(px(i),py(eP[i]));} ctx.stroke();
+  if(spot>0){
+    const xs=pxV(spot);
+    ctx.strokeStyle=colText; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(xs,PT); ctx.lineTo(xs,H-PB); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=colText; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+    ctx.fillText('$'+spot.toFixed(2),xs,H-PB+14);
+  }
+  S.legs.forEach(leg=>{
+    const xs=pxV(leg.strike); if(xs<PL||xs>W-PR) return;
+    ctx.strokeStyle=(leg.type==='CALL'?colGreen:colRed)+'88'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+    ctx.beginPath(); ctx.moveTo(xs,PT); ctx.lineTo(xs,H-PB); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=leg.type==='CALL'?colGreen:colRed; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+    ctx.fillText('$'+(leg.strike%1===0?leg.strike.toFixed(0):leg.strike.toFixed(1)),xs,PT+10);
+  });
+  let be=[];
+  for(let i=1;i<N;i++){
+    if((eP[i-1]<0&&eP[i]>=0)||(eP[i-1]>=0&&eP[i]<0)){
+      const bx=prices[i-1]+(prices[i]-prices[i-1])*(-eP[i-1])/(eP[i]-eP[i-1]); be.push(bx);
+      const bxp=pxV(bx);
+      ctx.fillStyle=colAmber; ctx.beginPath(); ctx.arc(bxp,y0,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=colAmber; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+      ctx.fillText('BE $'+bx.toFixed(1),bxp,y0-8);
+    }
+  }
+  [0,0.25,0.5,0.75,1].forEach(t=>{
+    const pv=lo+(hi-lo)*t, xp=PL+t*cw;
+    if(Math.abs(pv-spot)>range*0.05){ctx.fillStyle=colText;ctx.textAlign='center';ctx.font='8px JetBrains Mono,monospace';ctx.fillText('$'+pv.toFixed(0),xp,H-PB+14);}
+  });
+  const mp=Math.max(...eP), ml=Math.min(...eP);
+  const statsEl=document.getElementById('payoff-stats');
+  if(statsEl) statsEl.innerHTML=`
+    <span class="ps-key">Max Profit</span><span class="ps-val ps-profit">${mp>9999?'Unlimited':'+$'+mp.toFixed(0)}</span>
+    <span class="ps-key" style="margin-left:8px">Max Loss</span><span class="ps-val ps-loss">${ml<-9999?'Unlimited':'$'+ml.toFixed(0)}</span>
+    <span class="ps-key" style="margin-left:8px">Break-even</span><span class="ps-val" style="color:var(--amber)">${be.length?be.map(b=>'$'+b.toFixed(1)).join(' / '):'—'}</span>`;
+}
+window.addEventListener('resize', drawPayoff);
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  GAMMA EXPOSURE (GEX)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GEX state — keyed by expiry date
+const GEX_STATE = {
+  selectedExpiry: null,    // which expiry is currently shown
+  data: {},                // expiry → { strikes[], callGex[], putGex[], netGex[] }
+};
+
+// Load GEX for all loaded expirations (up to 4 nearest)
+async function loadGEX() {
+  if (!S.ticker || !S.accountId) {
+    renderGEXEmpty('Load a ticker in the Scanner first.');
+    return;
+  }
+  if (!S.expirations.length) {
+    renderGEXEmpty('No expirations loaded. Go to Scanner and load a ticker first.');
+    return;
+  }
+
+  // Use ALL expirations grouped by week/month
+  renderGEXPills(S.expirations);
+
+  // Start with currently selected expiry, or first available
+  const target = GEX_STATE.selectedExpiry && S.expirations.includes(GEX_STATE.selectedExpiry)
+    ? GEX_STATE.selectedExpiry
+    : S.expirations[0];
+
+  GEX_STATE.selectedExpiry = target;
+  renderGEXPills(S.expirations);
+
+  await computeGEX(target);
+}
+
+async function computeGEX(expiry) {
+  GEX_STATE.selectedExpiry = expiry;
+  renderGEXPills(S.expirations);
+  gexSpinner(true);
+
+  const spot = S.underlying ? parseFloat(S.underlying.last || 0) : 0;
+  if (!spot) { gexSpinner(false); renderGEXEmpty('No underlying price. Load a ticker first.'); return; }
+
+  // Use cached chain if expiry matches loaded chain, otherwise fetch
+  let calls, puts;
+  if (expiry === S.selectedExp && S.calls.length) {
+    calls = S.calls;
+    puts  = S.puts;
+  } else {
+    try {
+      const res = await api('POST', '/api/chain', {
+        accountId:      S.accountId,
+        instrument:     { symbol: S.ticker, type: 'EQUITY' },
+        expirationDate: expiry,
+      });
+      calls = res.calls || [];
+      puts  = res.puts  || [];
+    } catch(e) {
+      gexSpinner(false); renderGEXEmpty('Failed to load chain for ' + expiry + ': ' + e.message);
+      return;
+    }
+  }
+
+  // Collect all OSI symbols needing greeks (gamma + IV)
+  const allSyms = [
+    ...calls.map(o => o.instrument?.symbol),
+    ...puts.map(o  => o.instrument?.symbol),
+  ].filter(Boolean);
+
+  // Fetch greeks in batches of 20
+  const greeks = { ...S.greeks }; // start with cached
+  const missing = allSyms.filter(s => !greeks[s]);
+  for (let i = 0; i < missing.length; i += 20) {
+    const batch = missing.slice(i, i + 20);
+    try {
+      const params = new URLSearchParams({ accountId: S.accountId });
+      batch.forEach(s => params.append('osiSymbols', s));
+      const res = await api('GET', `/api/greeks?${params}`);
+      (res.greeks || []).forEach(g => { greeks[g.symbol] = g.greeks; });
+    } catch(e) { /* continue */ }
+  }
+
+  // Build strike map
+  const strikeMap = {};
+
+  calls.forEach(o => {
+    const info = parseOSI(o.instrument?.symbol);
+    if (!info) return;
+    const k = info.strike;
+    if (!strikeMap[k]) strikeMap[k] = { strike: k, callOI: 0, putOI: 0, callGamma: 0, putGamma: 0 };
+    const g = greeks[o.instrument.symbol];
+    strikeMap[k].callOI    = o.openInterest || 0;
+    strikeMap[k].callGamma = g ? parseFloat(g.gamma || 0) : 0;
+  });
+
+  puts.forEach(o => {
+    const info = parseOSI(o.instrument?.symbol);
+    if (!info) return;
+    const k = info.strike;
+    if (!strikeMap[k]) strikeMap[k] = { strike: k, callOI: 0, putOI: 0, callGamma: 0, putGamma: 0 };
+    const g = greeks[o.instrument.symbol];
+    strikeMap[k].putOI    = o.openInterest || 0;
+    strikeMap[k].putGamma = g ? parseFloat(g.gamma || 0) : 0;
+  });
+
+  // Calculate GEX per strike
+  // GEX = Gamma × OI × 100 × Spot²  / 100  (normalised to $ billions)
+  const rows = Object.values(strikeMap).sort((a, b) => a.strike - b.strike);
+  const scale = spot * spot * 100 / 1e9; // → billions
+
+  rows.forEach(r => {
+    r.callGex = r.callGamma * r.callOI * 100 * spot; // dealers long gamma on calls
+    r.putGex  = r.putGamma  * r.putOI  * 100 * spot * -1; // dealers short gamma on puts
+    r.netGex  = r.callGex + r.putGex;
+  });
+
+  // Cache and draw
+  GEX_STATE.data[expiry] = rows;
+  gexSpinner(false);
+  drawGEX(rows, spot, expiry);
+}
+
+function renderGEXPills(exps) {
+  const el = document.getElementById('gex-exp-pills');
+  if (!el) return;
+  if (!exps.length) { el.innerHTML = ''; return; }
+
+  const now = new Date();
+
+  // Group expirations: "This Week", "Next Week", then "MMM YYYY" months
+  const groups = {};
+  exps.forEach(d => {
+    const dt  = new Date(d + 'T00:00:00');
+    const dte = Math.max(0, Math.round((dt - now) / 86400000));
+    let label;
+    if      (dte <= 7)  label = 'This Week';
+    else if (dte <= 14) label = 'Next Week';
+    else if (dte <= 21) label = 'In 3 Weeks';
+    else {
+      label = dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+    if (!groups[label]) groups[label] = [];
+    groups[label].push({ d, dte });
+  });
+
+  // Render: group label (muted) followed by pills on the same line
+  el.innerHTML = Object.entries(groups).map(([label, items]) => `
+    <span style="font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;
+                 white-space:nowrap;padding:0 4px 0 2px">${label}</span>
+    ${items.map(({d, dte}) => {
+      const act = d === GEX_STATE.selectedExpiry;
+      const shortD = d.slice(5); // MM-DD
+      return `<button class="gex-pill ${act ? 'active' : ''}" onclick="computeGEX('${d}')" title="${d}">${shortD} <span style="opacity:0.6">${dte}d</span></button>`;
+    }).join('')}
+    <span style="display:inline-block;width:6px"></span>
+  `).join('');
+}
+
+function renderGEXEmpty(msg) {
+  const statsEl = document.getElementById('gex-stats-pane');
+  if (statsEl) statsEl.innerHTML = `<div style="color:var(--muted);font-size:11px">${msg}</div>`;
+  const canvas  = document.getElementById('gex-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const st  = getComputedStyle(document.documentElement);
+  canvas.width = canvas.offsetWidth || 600;
+  canvas.height = canvas.offsetHeight || 300;
+  ctx.fillStyle = st.getPropertyValue('--panel2').trim() || '#10131f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function gexSpinner(on) {
+  const el = document.getElementById('gex-spinner');
+  if (el) el.style.display = on ? 'flex' : 'none';
+}
+
+function drawGEX(rows, spot, expiry) {
+  const canvas = document.getElementById('gex-canvas');
+  if (!canvas || !rows.length) return;
+
+  // HiDPI
+  const rect = canvas.getBoundingClientRect();
+  const W    = Math.max(rect.width  || canvas.parentElement?.offsetWidth  || 700, 100);
+  const H    = Math.max(rect.height || canvas.parentElement?.offsetHeight || 320, 100);
+  const dpr  = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.imageSmoothingEnabled = true;
+
+  const st       = getComputedStyle(document.documentElement);
+  const cg       = v => st.getPropertyValue(v).trim();
+  const colBg    = cg('--panel2') || '#10131f';
+  const colGrid  = cg('--chart-grid') || 'rgba(255,255,255,0.04)';
+  const colText  = cg('--muted2') || '#5a6a8a';
+  const colMuted = cg('--muted')  || '#3f4e6e';
+  const colAmber = cg('--amber')  || '#f5a623';
+  const colGreen = cg('--green')  || '#0fc98a';
+  const colRed   = cg('--red')    || '#f05151';
+  const colZero  = cg('--chart-zero') || 'rgba(255,255,255,0.15)';
+
+  const PL=64, PR=16, PT=16, PB=32;
+  const cw = W - PL - PR;
+  const ch = H - PT - PB;
+
+  ctx.fillStyle = colBg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Filter to ±25% of spot for cleaner view
+  const visible = rows.filter(r => Math.abs(r.strike - spot) / spot <= 0.25);
+  if (!visible.length) { renderGEXEmpty('No strikes within ±25% of spot.'); return; }
+
+  const strikes  = visible.map(r => r.strike);
+  const minS     = Math.min(...strikes);
+  const maxS     = Math.max(...strikes);
+  const barCount = visible.length;
+  const barW     = Math.max(2, (cw / barCount) * 0.7);
+  const gap      = cw / barCount;
+
+  // Y scale: based on max absolute GEX value
+  const allGex   = visible.flatMap(r => [r.callGex, r.putGex, r.netGex]);
+  const maxAbs   = Math.max(Math.abs(Math.min(...allGex)), Math.abs(Math.max(...allGex)), 1);
+  const yScale   = ch / 2 / maxAbs;
+  const midY     = PT + ch / 2;
+
+  const xOf = (i) => PL + (i + 0.5) * gap;
+  const yOf = (v) => midY - v * yScale;
+
+  // Grid lines
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'right';
+  [-1, -0.5, 0, 0.5, 1].forEach(t => {
+    const v = t * maxAbs;
+    const y = yOf(v);
+    ctx.strokeStyle = t === 0 ? colZero : colGrid;
+    ctx.lineWidth   = t === 0 ? 1.5 : 1;
+    ctx.setLineDash(t === 0 ? [] : [3, 3]);
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
+    ctx.setLineDash([]);
+    const label = Math.abs(v) >= 1e9 ? (v/1e9).toFixed(1)+'B' : Math.abs(v) >= 1e6 ? (v/1e6).toFixed(0)+'M' : v.toFixed(0);
+    ctx.fillStyle = colText;
+    ctx.fillText(label, PL - 4, y + 3);
+  });
+
+  // Draw call GEX bars (green, above zero)
+  visible.forEach((r, i) => {
+    const x = xOf(i);
+    if (r.callGex === 0) return;
+    const y1 = yOf(Math.max(0, r.callGex));
+    const y2 = yOf(Math.min(0, r.callGex));
+    ctx.fillStyle = colGreen + 'bb';
+    ctx.fillRect(x - barW/2 - 1, Math.min(y1,y2), barW, Math.abs(y2-y1) || 1);
+  });
+
+  // Draw put GEX bars (red, below zero)
+  visible.forEach((r, i) => {
+    const x = xOf(i);
+    if (r.putGex === 0) return;
+    const y1 = yOf(Math.max(0, r.putGex));
+    const y2 = yOf(Math.min(0, r.putGex));
+    ctx.fillStyle = colRed + 'bb';
+    ctx.fillRect(x - barW/2 + 1, Math.min(y1,y2), barW, Math.abs(y2-y1) || 1);
+  });
+
+  // Draw net GEX line (amber, smooth)
+  ctx.strokeStyle = colAmber;
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  visible.forEach((r, i) => {
+    const x = xOf(i), y = yOf(r.netGex);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Net GEX dots at each strike
+  visible.forEach((r, i) => {
+    const x = xOf(i), y = yOf(r.netGex);
+    ctx.fillStyle = colAmber;
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Spot price vertical line
+  if (spot > 0 && spot >= minS && spot <= maxS) {
+    const spotX = PL + ((spot - minS) / (maxS - minS || 1)) * cw;
+    ctx.strokeStyle = colText;
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(spotX, PT); ctx.lineTo(spotX, H - PB); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle  = colText;
+    ctx.textAlign  = 'center';
+    ctx.font       = '8px JetBrains Mono, monospace';
+    ctx.fillText('$' + spot.toFixed(2), spotX, H - PB + 14);
+  }
+
+  // X-axis strike labels (every ~5th bar to avoid crowding)
+  const step = Math.max(1, Math.ceil(barCount / 12));
+  ctx.fillStyle  = colMuted;
+  ctx.textAlign  = 'center';
+  ctx.font       = '8px JetBrains Mono, monospace';
+  visible.forEach((r, i) => {
+    if (i % step !== 0) return;
+    ctx.fillText('$' + (r.strike % 1 === 0 ? r.strike.toFixed(0) : r.strike.toFixed(1)), xOf(i), H - PB + 14);
+  });
+
+  // ── Stats panel ─────────────────────────────────────────────────────────
+  const totalCallGex = visible.reduce((s, r) => s + r.callGex, 0);
+  const totalPutGex  = visible.reduce((s, r) => s + r.putGex,  0);
+  const totalNetGex  = visible.reduce((s, r) => s + r.netGex,  0);
+
+  // Gamma wall = strike with highest absolute net GEX
+  const gammaWall = visible.reduce((best, r) => Math.abs(r.netGex) > Math.abs(best.netGex) ? r : best, visible[0]);
+
+  // Zero gamma level = interpolated zero crossing of net GEX (if any)
+  let zeroGamma = null;
+  for (let i = 1; i < visible.length; i++) {
+    const a = visible[i-1], b = visible[i];
+    if ((a.netGex >= 0 && b.netGex < 0) || (a.netGex < 0 && b.netGex >= 0)) {
+      zeroGamma = a.strike + (b.strike - a.strike) * (-a.netGex) / (b.netGex - a.netGex);
+      break;
+    }
+  }
+
+  const fmt = v => {
+    const abs = Math.abs(v);
+    const s   = v >= 0 ? '+' : '-';
+    if (abs >= 1e9) return s + (abs/1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return s + (abs/1e6).toFixed(1) + 'M';
+    if (abs >= 1e3) return s + (abs/1e3).toFixed(0) + 'K';
+    return s + abs.toFixed(0);
+  };
+
+  const statsEl = document.getElementById('gex-stats-pane');
+  if (statsEl) statsEl.innerHTML = `
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">Net GEX</div>
+      <div class="gex-stat-val ${totalNetGex >= 0 ? 'gex-positive' : 'gex-negative'}">${fmt(totalNetGex)}</div>
+      <div style="font-size:9px;color:var(--muted2)">${totalNetGex >= 0 ? '▲ Positive — dealers stabilizing' : '▼ Negative — dealers amplifying'}</div>
+    </div>
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">Call GEX</div>
+      <div class="gex-stat-val gex-positive">${fmt(totalCallGex)}</div>
+    </div>
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">Put GEX</div>
+      <div class="gex-stat-val gex-negative">${fmt(totalPutGex)}</div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:10px">
+      <div class="gex-stat-lbl" style="margin-bottom:8px">Key Levels</div>
+      <div class="gex-level-row">
+        <span class="gex-level-key">Spot</span>
+        <span class="gex-level-val">$${spot.toFixed(2)}</span>
+      </div>
+      <div class="gex-level-row">
+        <span class="gex-level-key">Gamma Wall</span>
+        <span class="gex-level-val gex-neutral">$${gammaWall?.strike.toFixed(2) || '—'}</span>
+      </div>
+      <div class="gex-level-row">
+        <span class="gex-level-key">Zero Gamma</span>
+        <span class="gex-level-val" style="color:var(--blue)">${zeroGamma ? '$' + zeroGamma.toFixed(2) : '—'}</span>
+      </div>
+      <div class="gex-level-row">
+        <span class="gex-level-key">Expiry</span>
+        <span class="gex-level-val">${expiry}</span>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:10px;font-size:9px;color:var(--muted2);line-height:1.6">
+      GEX = Gamma × OI × 100 × Spot.<br>
+      Assumes dealers are net short options.<br>
+      Positive GEX → dealers buy dips, sell rallies.<br>
+      Gamma Wall = largest dealer hedge concentration.
+    </div>
+  `;
+}
+
+window.addEventListener('resize', () => {
+  if (GEX_STATE.selectedExpiry && GEX_STATE.data[GEX_STATE.selectedExpiry]) {
+    const spot = S.underlying ? parseFloat(S.underlying.last || 0) : 0;
+    drawGEX(GEX_STATE.data[GEX_STATE.selectedExpiry], spot, GEX_STATE.selectedExpiry);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ANALYTICS — IV Smile, Max Pain, Put/Call Ratio, Implied Move
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ANA = {
+  currentView:   'iv_smile',
+  selectedExpiry: null,
+  cache: {},        // expiry → { calls, puts, greeks }
+};
+
+// ── Entry point ────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  if (!S.ticker || !S.accountId) {
+    anaEmpty('Load a ticker in the Scanner first.'); return;
+  }
+  if (!S.expirations.length) {
+    anaEmpty('No expirations loaded. Go to Scanner and load a ticker first.'); return;
+  }
+
+  // Reset if ticker changed
+  if (ANA.ticker !== S.ticker) {
+    ANA.ticker = S.ticker;
+    ANA.cache  = {};
+    ANA.selectedExpiry = null;
+  }
+
+  renderAnaPills();
+
+  const target = ANA.selectedExpiry && S.expirations.includes(ANA.selectedExpiry)
+    ? ANA.selectedExpiry : S.expirations[0];
+  ANA.selectedExpiry = target;
+  renderAnaPills();
+
+  await fetchAnaData(target);
+  drawAnalytics();
+}
+
+// Sub-tab switch
+function switchAnalytics(view) {
+  ANA.currentView = view;
+  ['iv_smile','max_pain','pcr','implied_move','vol_surface'].forEach(v => {
+    const b = document.getElementById('atab-' + v);
+    if (b) b.classList.toggle('active', v === view);
+  });
+  // Vol surface uses all expirations — hide single-expiry pills
+  const pills = document.getElementById('analytics-exp-pills');
+  if (pills) pills.style.display = view === 'vol_surface' ? 'none' : '';
+  if (view === 'vol_surface') {
+    // Clear canvas and show loading state immediately before async fetch begins
+    anaEmpty('Loading volatility surface…');
+    loadVolSurface();
+  } else {
+    drawAnalytics();
+  }
+}
+
+// Expiry pill click
+async function selectAnaExpiry(exp) {
+  ANA.selectedExpiry = exp;
+  renderAnaPills();
+  await fetchAnaData(exp);
+  drawAnalytics();
+}
+
+// ── Data fetching ──────────────────────────────────────────────────────────
+async function fetchAnaData(expiry) {
+  if (ANA.cache[expiry]) return; // already cached
+
+  anaSpinner(true);
+  try {
+    // Reuse scanner chain if same expiry
+    let calls, puts;
+    if (expiry === S.selectedExp && S.calls.length) {
+      calls = S.calls; puts = S.puts;
+    } else {
+      const res = await api('POST', '/api/chain', {
+        accountId:      S.accountId,
+        instrument:     { symbol: S.ticker, type: 'EQUITY' },
+        expirationDate: expiry,
+      });
+      calls = res.calls || []; puts = res.puts || [];
+    }
+
+    // Collect symbols needing greeks
+    const syms = [...calls, ...puts].map(o => o.instrument?.symbol).filter(Boolean);
+    const greeks = { ...S.greeks };
+    const missing = syms.filter(s => !greeks[s]);
+    for (let i = 0; i < missing.length; i += 20) {
+      try {
+        const params = new URLSearchParams({ accountId: S.accountId });
+        missing.slice(i, i+20).forEach(s => params.append('osiSymbols', s));
+        const r = await api('GET', `/api/greeks?${params}`);
+        (r.greeks || []).forEach(g => { greeks[g.symbol] = g.greeks; });
+      } catch(e) {}
+    }
+
+    ANA.cache[expiry] = { calls, puts, greeks };
+  } catch(e) {
+    anaEmpty('Failed to load data: ' + e.message);
+  }
+  anaSpinner(false);
+}
+
+// ── Draw dispatcher ────────────────────────────────────────────────────────
+function drawAnalytics() {
+  const d = ANA.cache[ANA.selectedExpiry];
+  if (!d) { anaEmpty('No data loaded yet.'); return; }
+
+  const spot = S.underlying ? parseFloat(S.underlying.last || 0) : 0;
+
+  if      (ANA.currentView === 'iv_smile')      drawIVSmile(d, spot);
+  else if (ANA.currentView === 'max_pain')       drawMaxPain(d, spot);
+  else if (ANA.currentView === 'pcr')            drawPCR(d, spot);
+  else if (ANA.currentView === 'implied_move')   drawImpliedMove(d, spot);
+  else if (ANA.currentView === 'vol_surface')    loadVolSurface();
+}
+
+// ── Canvas setup helper ────────────────────────────────────────────────────
+function anaCanvas() {
+  const canvas = document.getElementById('analytics-canvas');
+  if (!canvas) return null;
+  const rect = canvas.getBoundingClientRect();
+  const W = Math.max(rect.width  || 600, 100);
+  const H = Math.max(rect.height || 300, 80);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.imageSmoothingEnabled = true;
+  const st  = getComputedStyle(document.documentElement);
+  const cg  = v => st.getPropertyValue(v).trim();
+  return { ctx, W, H, st, cg,
+    colBg:    cg('--panel2') || '#10131f',
+    colGrid:  cg('--chart-grid') || 'rgba(255,255,255,0.04)',
+    colZero:  cg('--chart-zero') || 'rgba(255,255,255,0.15)',
+    colText:  cg('--muted2') || '#5a6a8a',
+    colMuted: cg('--muted')  || '#3f4e6e',
+    colAmber: cg('--amber')  || '#f5a623',
+    colBlue:  cg('--blue')   || '#4e8cff',
+    colGreen: cg('--green')  || '#0fc98a',
+    colRed:   cg('--red')    || '#f05151',
+    colText2: cg('--text')   || '#c4cfe8',
+  };
+}
+
+// ── IV SMILE ───────────────────────────────────────────────────────────────
+function drawIVSmile(d, spot) {
+  const cv = anaCanvas(); if (!cv) return;
+  const { ctx, W, H, colBg, colGrid, colText, colMuted, colAmber, colGreen, colRed, colBlue, colZero } = cv;
+  const PL=60,PR=16,PT=20,PB=32, cw=W-PL-PR, ch=H-PT-PB;
+
+  // Build IV points per strike
+  const callPts = [], putPts = [];
+  d.calls.forEach(o => {
+    const info = parseOSI(o.instrument?.symbol); if (!info) return;
+    const g = d.greeks[o.instrument.symbol];
+    const iv = g ? parseFloat(g.impliedVolatility||0)*100 : 0;
+    if (iv > 0) callPts.push({ strike: info.strike, iv });
+  });
+  d.puts.forEach(o => {
+    const info = parseOSI(o.instrument?.symbol); if (!info) return;
+    const g = d.greeks[o.instrument.symbol];
+    const iv = g ? parseFloat(g.impliedVolatility||0)*100 : 0;
+    if (iv > 0) putPts.push({ strike: info.strike, iv });
+  });
+
+  callPts.sort((a,b) => a.strike-b.strike);
+  putPts.sort((a,b) => a.strike-b.strike);
+
+  // ±25% of spot
+  const lo = spot * 0.75, hi = spot * 1.25;
+  const fC = callPts.filter(p => p.strike >= lo && p.strike <= hi);
+  const fP = putPts.filter(p => p.strike >= lo && p.strike <= hi);
+  const all = [...fC, ...fP];
+  if (!all.length) { anaEmpty('No IV data available.'); return; }
+
+  const allIV = all.map(p => p.iv);
+  const minS = lo, maxS = hi;
+  const minIV = Math.max(0, Math.min(...allIV) * 0.9);
+  const maxIV = Math.max(...allIV) * 1.1;
+
+  const px = s => PL + (s - minS)/(maxS - minS) * cw;
+  const py = v => PT + (1 - (v - minIV)/(maxIV - minIV)) * ch;
+
+  ctx.fillStyle = colBg; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.font = '9px JetBrains Mono,monospace'; ctx.textAlign = 'right';
+  for (let i=0; i<=4; i++) {
+    const v = minIV + (maxIV-minIV)*i/4, y = py(v);
+    ctx.strokeStyle=colGrid; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(W-PR,y); ctx.stroke();
+    ctx.fillStyle=colText; ctx.fillText(v.toFixed(0)+'%', PL-4, y+3);
+  }
+
+  // Spot line
+  if (spot >= minS && spot <= maxS) {
+    const sx = px(spot);
+    ctx.strokeStyle=colAmber; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(sx,PT); ctx.lineTo(sx,H-PB); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=colAmber; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+    ctx.fillText('Spot $'+spot.toFixed(2), sx, H-PB+14);
+  }
+
+  // Draw call IV line (green)
+  const drawLine = (pts, col) => {
+    if (!pts.length) return;
+    ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round';
+    ctx.beginPath();
+    pts.forEach((p,i) => { i===0?ctx.moveTo(px(p.strike),py(p.iv)):ctx.lineTo(px(p.strike),py(p.iv)); });
+    ctx.stroke();
+    pts.forEach(p => {
+      ctx.fillStyle=col; ctx.beginPath();
+      ctx.arc(px(p.strike),py(p.iv),2.5,0,Math.PI*2); ctx.fill();
+    });
+  };
+  drawLine(fC, colGreen);
+  drawLine(fP, colRed);
+
+  // X labels
+  ctx.fillStyle=colText; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+  const step = Math.max(1, Math.ceil(fC.length/8));
+  fC.filter((_,i)=>i%step===0).forEach(p => ctx.fillText('$'+p.strike.toFixed(0), px(p.strike), H-PB+14));
+
+  // Legend
+  ctx.font='9px JetBrains Mono,monospace'; ctx.textAlign='left';
+  ctx.fillStyle=colGreen; ctx.fillRect(PL,6,16,2); ctx.fillText('Calls', PL+20, 11);
+  ctx.fillStyle=colRed;   ctx.fillRect(PL+60,6,16,2); ctx.fillText('Puts', PL+80, 11);
+
+  // Stats panel
+  const atmCall = fC.reduce((b,p)=>Math.abs(p.strike-spot)<Math.abs(b.strike-spot)?p:b, fC[0]||{iv:0,strike:0});
+  const atmPut  = fP.reduce((b,p)=>Math.abs(p.strike-spot)<Math.abs(b.strike-spot)?p:b, fP[0]||{iv:0,strike:0});
+  const skew    = (atmPut.iv||0) - (atmCall.iv||0);
+  anaStats(`
+    <div class="gex-stat-block"><div class="gex-stat-lbl">ATM Call IV</div>
+      <div class="gex-stat-val" style="color:var(--green)">${atmCall.iv?.toFixed(1)||'—'}%</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">ATM Put IV</div>
+      <div class="gex-stat-val" style="color:var(--red)">${atmPut.iv?.toFixed(1)||'—'}%</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Skew (Put−Call)</div>
+      <div class="gex-stat-val" style="color:var(--amber)">${skew>=0?'+':''}${skew.toFixed(1)}%</div>
+      <div style="font-size:9px;color:var(--muted2)">${skew>2?'Heavy put demand':'Balanced'}</div></div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;font-size:9px;color:var(--muted2);line-height:1.6">
+      IV Smile shows implied volatility vs strike.<br>Higher put IV = market paying for downside protection.</div>
+  `);
+}
+
+// ── MAX PAIN ───────────────────────────────────────────────────────────────
+function drawMaxPain(d, spot) {
+  const cv = anaCanvas(); if (!cv) return;
+  const { ctx, W, H, colBg, colGrid, colText, colMuted, colAmber, colGreen, colRed, colBlue } = cv;
+  const PL=72,PR=16,PT=20,PB=32, cw=W-PL-PR, ch=H-PT-PB;
+
+  // Build strike → OI map
+  const callOI = {}, putOI = {};
+  d.calls.forEach(o => { const info=parseOSI(o.instrument?.symbol); if(info) callOI[info.strike]=(o.openInterest||0); });
+  d.puts.forEach(o  => { const info=parseOSI(o.instrument?.symbol); if(info) putOI[info.strike]=(o.openInterest||0); });
+
+  const strikes = [...new Set([...Object.keys(callOI),...Object.keys(putOI)].map(Number))].sort((a,b)=>a-b);
+  if (!strikes.length) { anaEmpty('No OI data.'); return; }
+
+  // Max pain: at each potential expiry price, sum dollar loss to call + put buyers
+  const pain = strikes.map(expPrice => {
+    let total = 0;
+    strikes.forEach(k => {
+      const c = callOI[k]||0, p = putOI[k]||0;
+      if (expPrice > k) total += (expPrice - k) * c * 100; // calls ITM → loss to put sellers? No:
+      // Call buyers lose when expPrice < strike; put buyers lose when expPrice > strike
+      // Pain = sum of (intrinsic value × OI × 100) that option sellers must pay
+      // Re-calculating correctly:
+    });
+    // Correct formula: loss to option BUYERS = intrinsic × OI × 100
+    let callPain=0, putPain=0;
+    strikes.forEach(k => {
+      if (expPrice > k) callPain += (expPrice-k)*(callOI[k]||0)*100; // calls ITM
+      if (expPrice < k) putPain  += (k-expPrice)*(putOI[k]||0)*100;  // puts ITM
+    });
+    return { strike: expPrice, pain: callPain+putPain, callPain, putPain };
+  });
+
+  const maxPainStrike = pain.reduce((b,p)=>p.pain<b.pain?p:b, pain[0]);
+  const maxPainVal = Math.max(...pain.map(p=>p.pain));
+  const visible = pain.filter(p=>Math.abs(p.strike-spot)/spot<=0.25);
+  if (!visible.length) { anaEmpty('No strikes within ±25%.'); return; }
+
+  const minS=Math.min(...visible.map(p=>p.strike));
+  const maxS=Math.max(...visible.map(p=>p.strike));
+  const barW=Math.max(2,(cw/visible.length)*0.75);
+
+  const px=(_,i)=>PL+(i+0.5)*(cw/visible.length);
+  const py=v=>PT+(1-v/maxPainVal)*ch;
+
+  ctx.fillStyle=colBg; ctx.fillRect(0,0,W,H);
+
+  // Y grid
+  ctx.font='9px JetBrains Mono,monospace'; ctx.textAlign='right';
+  for(let i=0;i<=4;i++){
+    const v=maxPainVal*i/4, y=py(v);
+    ctx.strokeStyle=colGrid; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(W-PR,y); ctx.stroke();
+    const lbl=v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);
+    ctx.fillStyle=colText; ctx.fillText(lbl, PL-4, y+3);
+  }
+
+  // Bars
+  visible.forEach((p,i) => {
+    const x=px(null,i), isMP=p.strike===maxPainStrike.strike, isSpot=Math.abs(p.strike-spot)<0.5;
+    ctx.fillStyle = isMP ? colAmber+'cc' : isSpot ? colBlue+'88' : colGreen+'66';
+    const barH = Math.max(1, (H-PB) - py(p.pain));
+    ctx.fillRect(x-barW/2, py(p.pain), barW, barH);
+  });
+
+  // Max pain vertical highlight
+  const mpIdx = visible.findIndex(p=>p.strike===maxPainStrike.strike);
+  if (mpIdx>=0) {
+    ctx.strokeStyle=colAmber; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(null,mpIdx),PT); ctx.lineTo(px(null,mpIdx),H-PB); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Spot line
+  const spotX = PL + ((spot-minS)/(maxS-minS||1))*cw;
+  if(spotX>PL && spotX<W-PR){
+    ctx.strokeStyle=colBlue; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(spotX,PT); ctx.lineTo(spotX,H-PB); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // X labels
+  ctx.fillStyle=colText; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+  const step=Math.max(1,Math.ceil(visible.length/10));
+  visible.filter((_,i)=>i%step===0).forEach((p,_,__,i2=visible.indexOf(p))=>
+    ctx.fillText('$'+p.strike.toFixed(0), px(null,visible.indexOf(p)), H-PB+14)
+  );
+
+  const fmt=v=>v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':(v/1e3).toFixed(0)+'K';
+  anaStats(`
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Max Pain Strike</div>
+      <div class="gex-stat-val gex-neutral">$${maxPainStrike.strike.toFixed(0)}</div>
+      <div style="font-size:9px;color:var(--muted2)">Option writers profit most here</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Current Spot</div>
+      <div class="gex-stat-val">$${spot.toFixed(2)}</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Distance</div>
+      <div class="gex-stat-val ${maxPainStrike.strike>spot?'gex-positive':'gex-negative'}">
+        ${maxPainStrike.strike>spot?'↑':' ↓'}$${Math.abs(maxPainStrike.strike-spot).toFixed(2)}
+        (${(Math.abs(maxPainStrike.strike-spot)/spot*100).toFixed(1)}%)</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Total Pain at MP</div>
+      <div class="gex-stat-val" style="font-size:13px">${fmt(maxPainStrike.pain)}</div></div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;font-size:9px;color:var(--muted2);line-height:1.6">
+      Max Pain = strike where option buyers lose the most at expiry. Amber bar = max pain level.</div>
+  `);
+}
+
+// ── PUT/CALL RATIO ─────────────────────────────────────────────────────────
+function drawPCR(d, spot) {
+  const cv = anaCanvas(); if (!cv) return;
+  const { ctx, W, H, colBg, colGrid, colText, colAmber, colGreen, colRed, colBlue, colZero } = cv;
+  const PL=60,PR=16,PT=20,PB=32, cw=W-PL-PR, ch=H-PT-PB;
+
+  const pts = [];
+  const strikes = [...new Set([
+    ...d.calls.map(o=>{const i=parseOSI(o.instrument?.symbol);return i?.strike}).filter(Boolean),
+    ...d.puts.map(o=>{const i=parseOSI(o.instrument?.symbol);return i?.strike}).filter(Boolean),
+  ])].sort((a,b)=>a-b);
+
+  const cMap={}, pMap={};
+  d.calls.forEach(o=>{const i=parseOSI(o.instrument?.symbol);if(i)cMap[i.strike]=(o.openInterest||0);});
+  d.puts.forEach(o=>{const i=parseOSI(o.instrument?.symbol);if(i)pMap[i.strike]=(o.openInterest||0);});
+
+  const visible = strikes.filter(s=>Math.abs(s-spot)/spot<=0.20).map(s=>({
+    strike:s, callOI:cMap[s]||0, putOI:pMap[s]||0,
+    pcr:(cMap[s]||0)===0?0:(pMap[s]||0)/(cMap[s]||0)
+  }));
+  if (!visible.length) { anaEmpty('No OI data within ±20%.'); return; }
+
+  const maxOI  = Math.max(...visible.flatMap(p=>[p.callOI,p.putOI]),1);
+  const barW   = Math.max(2,(cw/visible.length)*0.35);
+  const px     = (_,i)=>PL+(i+0.5)*(cw/visible.length);
+  const pyOI   = v=>PT+(1-v/maxOI)*ch;
+
+  ctx.fillStyle=colBg; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.font='9px JetBrains Mono,monospace'; ctx.textAlign='right';
+  for(let i=0;i<=4;i++){
+    const v=maxOI*i/4, y=pyOI(v);
+    ctx.strokeStyle=colGrid; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(W-PR,y); ctx.stroke();
+    const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v.toFixed(0);
+    ctx.fillStyle=colText; ctx.fillText(lbl, PL-4, y+3);
+  }
+
+  // Call bars (green left) + Put bars (red right)
+  visible.forEach((p,i)=>{
+    const x=px(null,i);
+    const cH=Math.max(1,(H-PB)-pyOI(p.callOI));
+    const pH=Math.max(1,(H-PB)-pyOI(p.putOI));
+    ctx.fillStyle=colGreen+'99'; ctx.fillRect(x-barW-1, pyOI(p.callOI), barW, cH);
+    ctx.fillStyle=colRed+'99';   ctx.fillRect(x+1,       pyOI(p.putOI),  barW, pH);
+  });
+
+  // PCR ratio line (secondary axis, normalized 0–3)
+  const maxPCR=3;
+  const pyPCR=v=>PT+(1-Math.min(v,maxPCR)/maxPCR)*ch;
+  ctx.strokeStyle=colAmber; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  visible.forEach((p,i)=>{i===0?ctx.moveTo(px(null,i),pyPCR(p.pcr)):ctx.lineTo(px(null,i),pyPCR(p.pcr));});
+  ctx.stroke();
+
+  // PCR=1 line
+  ctx.strokeStyle=colAmber+'55'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(PL,pyPCR(1)); ctx.lineTo(W-PR,pyPCR(1)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=colAmber+'99'; ctx.textAlign='right'; ctx.font='8px JetBrains Mono,monospace';
+  ctx.fillText('PCR=1', PL-4, pyPCR(1)+3);
+
+  // Spot line
+  const spotX=PL+((spot-visible[0].strike)/(visible[visible.length-1].strike-visible[0].strike||1))*cw;
+  if(spotX>PL&&spotX<W-PR){
+    ctx.strokeStyle=colBlue; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(spotX,PT); ctx.lineTo(spotX,H-PB); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // X labels
+  ctx.fillStyle=colText; ctx.textAlign='center'; ctx.font='8px JetBrains Mono,monospace';
+  const step=Math.max(1,Math.ceil(visible.length/10));
+  visible.filter((_,i)=>i%step===0).forEach(p=>ctx.fillText('$'+p.strike.toFixed(0),px(null,visible.indexOf(p)),H-PB+14));
+
+  // Legend
+  ctx.font='9px JetBrains Mono,monospace'; ctx.textAlign='left';
+  ctx.fillStyle=colGreen; ctx.fillRect(PL,6,12,8); ctx.fillText('Call OI', PL+16, 13);
+  ctx.fillStyle=colRed;   ctx.fillRect(PL+72,6,12,8); ctx.fillText('Put OI', PL+88, 13);
+  ctx.fillStyle=colAmber; ctx.fillRect(PL+144,6,16,2); ctx.fillText('P/C Ratio', PL+164, 13);
+
+  const totalPCR = visible.reduce((s,p)=>s+p.putOI,0) / Math.max(1, visible.reduce((s,p)=>s+p.callOI,0));
+  const bullish  = totalPCR < 0.7, bearish = totalPCR > 1.2;
+  anaStats(`
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Aggregate P/C Ratio</div>
+      <div class="gex-stat-val ${bearish?'gex-negative':bullish?'gex-positive':'gex-neutral'}">${totalPCR.toFixed(2)}</div>
+      <div style="font-size:9px;color:var(--muted2)">${bearish?'Bearish — heavy put hedging':bullish?'Bullish — call dominance':'Neutral positioning'}</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Total Call OI</div>
+      <div class="gex-stat-val gex-positive">${(visible.reduce((s,p)=>s+p.callOI,0)/1e3).toFixed(0)}K</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Total Put OI</div>
+      <div class="gex-stat-val gex-negative">${(visible.reduce((s,p)=>s+p.putOI,0)/1e3).toFixed(0)}K</div></div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;font-size:9px;color:var(--muted2);line-height:1.6">
+      P/C Ratio > 1 = more put OI than calls (bearish hedging).<br>Amber line = ratio, bars = raw OI per strike.</div>
+  `);
+}
+
+// ── IMPLIED MOVE ───────────────────────────────────────────────────────────
+function drawImpliedMove(d, spot) {
+  const cv = anaCanvas(); if (!cv) return;
+  const { ctx, W, H, colBg, colGrid, colText, colMuted, colAmber, colBlue, colGreen, colRed, colZero } = cv;
+
+  ctx.fillStyle=colBg; ctx.fillRect(0,0,W,H);
+
+  if (!spot) { anaEmpty('No spot price available.'); return; }
+
+  // ATM straddle: find closest call+put to spot
+  const callMap={}, putMap={};
+  d.calls.forEach(o=>{const i=parseOSI(o.instrument?.symbol);if(i)callMap[i.strike]=o;});
+  d.puts.forEach(o=>{const i=parseOSI(o.instrument?.symbol);if(i)putMap[i.strike]=o;});
+
+  const strikes=[...new Set([...Object.keys(callMap),...Object.keys(putMap)].map(Number))].sort((a,b)=>a-b);
+  const atmStrike=strikes.reduce((b,s)=>Math.abs(s-spot)<Math.abs(b-spot)?s:b, strikes[0]);
+
+  const atmCall=callMap[atmStrike], atmPut=putMap[atmStrike];
+  if(!atmCall||!atmPut){anaEmpty('Could not find ATM straddle.'); return;}
+
+  const callMid=((parseFloat(atmCall.bid||0)+parseFloat(atmCall.ask||0))/2);
+  const putMid =((parseFloat(atmPut.bid||0)+parseFloat(atmPut.ask||0))/2);
+  const straddleMid = callMid + putMid;
+  const impliedMovePct = (straddleMid / spot) * 100;
+  const upperBand = spot + straddleMid;
+  const lowerBand = spot - straddleMid;
+
+  // Get DTE
+  const dte = ANA.selectedExpiry
+    ? Math.max(0,Math.round((new Date(ANA.selectedExpiry+'T00:00:00')-new Date())/86400000))
+    : 0;
+
+  // Draw visual: horizontal price axis with spot + bands
+  const midY  = H * 0.42;
+  const rangeViz = straddleMid * 2.5;
+  const pxPrice = p => W*0.12 + (p - (spot-rangeViz)) / (rangeViz*2) * (W*0.76);
+
+  // Background band (expected range)
+  const x1=pxPrice(lowerBand), x2=pxPrice(upperBand);
+  const bandGrad=ctx.createLinearGradient(x1,0,x2,0);
+  bandGrad.addColorStop(0,   colGreen+'00');
+  bandGrad.addColorStop(0.2, colGreen+'22');
+  bandGrad.addColorStop(0.5, colAmber+'33');
+  bandGrad.addColorStop(0.8, colRed+'22');
+  bandGrad.addColorStop(1,   colRed+'00');
+  ctx.fillStyle=bandGrad;
+  ctx.fillRect(x1, midY-40, x2-x1, 80);
+
+  // Band borders
+  [[x1,colGreen],[x2,colRed]].forEach(([x,col])=>{
+    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x,midY-50); ctx.lineTo(x,midY+50); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Spot marker
+  const sx=pxPrice(spot);
+  ctx.fillStyle=colAmber;
+  ctx.beginPath(); ctx.arc(sx,midY,8,0,Math.PI*2); ctx.fill();
+
+  // Price axis line
+  ctx.strokeStyle=colGrid; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(W*0.1,midY); ctx.lineTo(W*0.9,midY); ctx.stroke();
+
+  // Labels
+  ctx.font='bold 11px JetBrains Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=colRed;   ctx.fillText('$'+lowerBand.toFixed(2), x1, midY+68);
+  ctx.fillStyle=colAmber; ctx.fillText('$'+spot.toFixed(2), sx, midY+68);
+  ctx.fillStyle=colGreen; ctx.fillText('$'+upperBand.toFixed(2), x2, midY+68);
+
+  // ±% labels above bands
+  ctx.font='10px JetBrains Mono,monospace';
+  ctx.fillStyle=colRed;   ctx.fillText('-'+impliedMovePct.toFixed(1)+'%', x1, midY-58);
+  ctx.fillStyle=colGreen; ctx.fillText('+'+impliedMovePct.toFixed(1)+'%', x2, midY-58);
+
+  // ATM straddle cost label
+  ctx.fillStyle=colText; ctx.font='9px JetBrains Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('ATM Straddle: $'+straddleMid.toFixed(2)+' · ±'+impliedMovePct.toFixed(2)+'%', W/2, midY-74);
+
+  // Stats panel
+  const annualIV = d.greeks[atmCall.instrument?.symbol];
+  const ivPct = annualIV ? (parseFloat(annualIV.impliedVolatility||0)*100).toFixed(1) : '—';
+  anaStats(`
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Implied Move ±</div>
+      <div class="gex-stat-val gex-neutral">±${impliedMovePct.toFixed(2)}%</div>
+      <div style="font-size:9px;color:var(--muted2)">±$${straddleMid.toFixed(2)} per share</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Expected Range</div>
+      <div style="font-size:10px;color:var(--red)">Low: $${lowerBand.toFixed(2)}</div>
+      <div style="font-size:10px;color:var(--green)">High: $${upperBand.toFixed(2)}</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">ATM Strike</div>
+      <div class="gex-stat-val">$${atmStrike.toFixed(0)}</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">Straddle Cost</div>
+      <div class="gex-stat-val">$${straddleMid.toFixed(2)}</div>
+      <div style="font-size:9px;color:var(--muted2)">Call $${callMid.toFixed(2)} + Put $${putMid.toFixed(2)}</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">ATM IV</div>
+      <div class="gex-stat-val">${ivPct}%</div></div>
+    <div class="gex-stat-block"><div class="gex-stat-lbl">DTE</div>
+      <div class="gex-stat-val">${dte} days</div></div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;font-size:9px;color:var(--muted2);line-height:1.6">
+      Implied move = ATM straddle price ÷ spot. The market's consensus ±% move by expiry.</div>
+  `);
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function renderAnaPills() {
+  const el = document.getElementById('analytics-exp-pills');
+  if (!el || !S.expirations.length) { if(el) el.innerHTML=''; return; }
+  const now = new Date();
+  const groups = {};
+  S.expirations.forEach(d => {
+    const dt  = new Date(d + 'T00:00:00');
+    const dte = Math.max(0, Math.round((dt - now) / 86400000));
+    let label = dte<=7?'This Week':dte<=14?'Next Week':dte<=21?'In 3 Weeks':
+                dt.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    if (!groups[label]) groups[label] = [];
+    groups[label].push({d, dte});
+  });
+  el.innerHTML = Object.entries(groups).map(([label, items]) => `
+    <span style="font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;
+                 white-space:nowrap;padding:0 4px 0 2px">${label}</span>
+    ${items.map(({d,dte})=>{
+      const act=d===ANA.selectedExpiry;
+      return `<button class="analytics-pill ${act?'active':''}" onclick="selectAnaExpiry('${d}')" title="${d}">${d.slice(5)} <span style="opacity:0.6">${dte}d</span></button>`;
+    }).join('')}
+    <span style="display:inline-block;width:6px"></span>
+  `).join('');
+}
+
+function anaStats(html) {
+  const el = document.getElementById('analytics-stats-pane');
+  if (el) el.innerHTML = html;
+}
+function anaEmpty(msg) {
+  anaStats(`<div style="color:var(--muted);font-size:11px">${msg}</div>`);
+  // Clear canvas so stale charts don't show behind the message
+  const canvas = document.getElementById('analytics-canvas');
+  if (canvas) {
+    const st = getComputedStyle(document.documentElement);
+    const ctx = canvas.getContext('2d');
+    canvas.width  = canvas.offsetWidth  || 600;
+    canvas.height = canvas.offsetHeight || 300;
+    ctx.fillStyle = st.getPropertyValue('--panel2').trim() || '#10131f';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+function anaSpinner(on) {
+  const el = document.getElementById('analytics-spinner');
+  if (el) el.style.display = on ? 'flex' : 'none';
+}
+
+window.addEventListener('resize', () => {
+  const tab = document.getElementById('tab-analytics');
+  if (tab && !tab.classList.contains('hidden')) {
+    if (ANA.currentView === 'vol_surface') {
+      // Only redraw if surface data exists — resize during loading should not clear
+      if (VS.surface && VS.surface.length) drawVolSurface(VS.surface);
+    } else {
+      drawAnalytics();
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  VOLATILITY SURFACE
+//  Fetches chains + greeks for all expirations, builds IV surface, renders
+//  as a pseudo-3D mesh on a 2D canvas using perspective projection.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const VS = {
+  ticker:  null,
+  surface: null,   // [{dte, moneyness, iv, callPut}] sorted
+  loading: false,
+};
+
+// ── Entry: fetch all expirations and build surface ─────────────────────────
+async function loadVolSurface() {
+  if (!S.ticker || !S.accountId) {
+    anaEmpty('Load a ticker in the Scanner first.'); return;
+  }
+  if (!S.expirations.length) {
+    anaEmpty('No expirations loaded — go to Scanner and load a ticker first.'); return;
+  }
+
+  // Reset if ticker changed
+  if (VS.ticker !== S.ticker) {
+    VS.ticker  = S.ticker;
+    VS.surface = null;
+  }
+
+  // Draw cached surface immediately if available
+  if (VS.surface) { drawVolSurface(VS.surface); return; }
+
+  if (VS.loading) return;
+  VS.loading = true;
+  anaSpinner(true);
+  anaStats('<div style="color:var(--muted);font-size:11px">Loading surface…<br>Fetching ' + S.expirations.length + ' expirations.</div>');
+
+  const spot = S.underlying ? parseFloat(S.underlying.last || 0) : 0;
+  if (!spot) { anaEmpty('No spot price — load a ticker first.'); VS.loading=false; anaSpinner(false); return; }
+
+  const now     = new Date();
+  const points  = [];
+  const exps    = S.expirations.slice(0, 12); // cap at 12 for performance
+
+  for (const expiry of exps) {
+    try {
+      // Use cached analytics data if available
+      let calls, puts, greeks;
+      if (ANA.cache[expiry]) {
+        ({ calls, puts, greeks } = ANA.cache[expiry]);
+      } else {
+        // Fetch chain
+        let chainCalls, chainPuts;
+        if (expiry === S.selectedExp && S.calls.length) {
+          chainCalls = S.calls; chainPuts = S.puts;
+        } else {
+          const res = await api('POST', '/api/chain', {
+            accountId: S.accountId,
+            instrument: { symbol: S.ticker, type: 'EQUITY' },
+            expirationDate: expiry,
+          });
+          chainCalls = res.calls || []; chainPuts = res.puts || [];
+        }
+        // Fetch greeks for this expiry (ATM ±15 strikes only for speed)
+        const allOpts = [...chainCalls, ...chainPuts];
+        const syms = allOpts
+          .map(o => ({ sym: o.instrument?.symbol, info: parseOSI(o.instrument?.symbol) }))
+          .filter(x => x.sym && x.info && Math.abs(x.info.strike - spot) / spot <= 0.20)
+          .map(x => x.sym);
+        greeks = { ...S.greeks };
+        const missing = syms.filter(s => !greeks[s]);
+        for (let i = 0; i < missing.length; i += 20) {
+          try {
+            const params = new URLSearchParams({ accountId: S.accountId });
+            missing.slice(i, i+20).forEach(s => params.append('osiSymbols', s));
+            const r = await api('GET', `/api/greeks?${params}`);
+            (r.greeks || []).forEach(g => { greeks[g.symbol] = g.greeks; });
+          } catch(e) {}
+        }
+        calls = chainCalls; puts = chainPuts;
+        ANA.cache[expiry] = { calls, puts, greeks };
+      }
+
+      const dte = Math.max(1, Math.round((new Date(expiry + 'T00:00:00') - now) / 86400000));
+
+      // Extract IV points within ±20% moneyness, calls only (cleaner surface)
+      calls.forEach(o => {
+        const info = parseOSI(o.instrument?.symbol);
+        if (!info) return;
+        const moneyness = (info.strike / spot - 1) * 100; // % OTM/ITM
+        if (Math.abs(moneyness) > 20) return;
+        const g  = greeks[o.instrument?.symbol];
+        const iv = g ? parseFloat(g.impliedVolatility || 0) * 100 : 0;
+        if (iv > 5 && iv < 300) points.push({ dte, moneyness, iv, expiry });
+      });
+
+      // Progressive render after each expiry
+      VS.surface = points;
+      if (points.length > 10) drawVolSurface(points);
+      anaStats(`<div style="color:var(--muted);font-size:11px">Loaded ${exps.indexOf(expiry)+1}/${exps.length} expirations…<br>${points.length} IV points so far.</div>`);
+
+    } catch(e) { /* skip failed expiry */ }
+  }
+
+  VS.surface = points;
+  VS.loading  = false;
+  anaSpinner(false);
+  drawVolSurface(points);
+}
+
+// ── Render vol surface as pseudo-3D mesh ───────────────────────────────────
+function drawVolSurface(points) {
+  if (!points || !points.length) {
+    // Only show "No surface data" if not actively loading
+    if (!VS.loading) anaEmpty('No surface data — load a ticker with expirations first.');
+    return;
+  }
+
+  const cv = anaCanvas(); if (!cv) return;
+  const { ctx, W, H, colBg, colText, colMuted, colAmber, colGreen, colRed, colBlue } = cv;
+  const spot = S.underlying ? parseFloat(S.underlying.last || 0) : 0;
+
+  ctx.fillStyle = colBg; ctx.fillRect(0, 0, W, H);
+
+  // ── Build grid ────────────────────────────────────────────────────────────
+  // X: moneyness buckets (-20 to +20, step 2)
+  // Y: dte buckets (sorted unique expirations)
+  const mBuckets = [];
+  for (let m = -20; m <= 20; m += 2) mBuckets.push(m);
+
+  const dteBuckets = [...new Set(points.map(p => p.dte))].sort((a,b) => b-a); // far to near
+
+  // For each (dte, moneyness) cell, find closest IV point
+  const grid = {};
+  dteBuckets.forEach(dte => {
+    mBuckets.forEach(m => {
+      const close = points.filter(p => p.dte === dte && Math.abs(p.moneyness - m) <= 2);
+      if (close.length) {
+        const iv = close.reduce((s,p) => s+p.iv, 0) / close.length;
+        grid[`${dte}_${m}`] = iv;
+      }
+    });
+  });
+
+  const allIVs  = Object.values(grid).filter(Boolean);
+  if (!allIVs.length) { anaEmpty('Insufficient data to render surface.'); return; }
+  const minIV   = Math.min(...allIVs);
+  const maxIV   = Math.max(...allIVs);
+  const ivRange = maxIV - minIV || 1;
+
+  // ── Heat colormap: blue → cyan → green → yellow → red ─────────────────────
+  function heatColor(t, alpha='ff') {
+    // t: 0–1
+    const stops = [
+      [0.00, [41,  98,  255]],  // blue
+      [0.25, [0,  201, 200]],   // cyan
+      [0.50, [15, 201, 138]],   // green
+      [0.75, [245,166,  35]],   // amber
+      [1.00, [240, 81,  81]],   // red
+    ];
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i][0]) {
+        const lo = stops[i-1], hi = stops[i];
+        const f  = (t - lo[0]) / (hi[0] - lo[0]);
+        const r  = Math.round(lo[1][0] + (hi[1][0]-lo[1][0])*f);
+        const g  = Math.round(lo[1][1] + (hi[1][1]-lo[1][1])*f);
+        const b  = Math.round(lo[1][2] + (hi[1][2]-lo[1][2])*f);
+        return `rgba(${r},${g},${b},${alpha})`;
+      }
+    }
+    return `rgba(240,81,81,${alpha})`;
+  }
+
+  // ── Perspective projection ────────────────────────────────────────────────
+  // Map 3D (x=moneyness, y=iv, z=dte_index) → 2D screen
+  const NX = mBuckets.length;
+  const NZ = dteBuckets.length;
+
+  // Camera / projection params
+  const PAD   = 60;
+  const cw    = W - PAD * 2;
+  const ch    = H - PAD * 2 - 30;
+  // Isometric-style: rotate ~40° around Y, tilt ~30° around X
+  const sinA  = Math.sin(-0.65),  cosA = Math.cos(-0.65);  // Y rotation
+  const sinB  = Math.sin(0.45),   cosB = Math.cos(0.45);   // X tilt
+
+  function project(xi, yi, zi) {
+    // Normalize to [-1,1]
+    const nx = (xi / (NX-1)) * 2 - 1;
+    const nz = (zi / (NZ-1)) * 2 - 1;
+    const ny = (yi - minIV) / ivRange;   // 0–1
+
+    // Rotate around Y
+    const rx = nx * cosA - nz * sinA;
+    const rz = nx * sinA + nz * cosA;
+
+    // Tilt around X
+    const ry2 = ny * cosB - rz * sinB;
+    const rz2 = ny * sinB + rz * cosB;
+
+    // Project to screen
+    const scale = 1 / (1 + rz2 * 0.3 + 0.8);
+    const sx = W/2 + rx * cw * 0.5 * scale;
+    const sy = H/2 - ry2 * ch * 0.55 * scale + 20;
+    return { sx, sy, scale };
+  }
+
+  // ── Draw grid faces back-to-front ─────────────────────────────────────────
+  for (let zi = 0; zi < NZ - 1; zi++) {
+    for (let xi = 0; xi < NX - 1; xi++) {
+      const dte0 = dteBuckets[zi],   dte1 = dteBuckets[zi+1];
+      const m0   = mBuckets[xi],     m1   = mBuckets[xi+1];
+
+      const iv00 = grid[`${dte0}_${m0}`];
+      const iv10 = grid[`${dte0}_${m1}`];
+      const iv01 = grid[`${dte1}_${m0}`];
+      const iv11 = grid[`${dte1}_${m1}`];
+
+      if (!iv00 || !iv10 || !iv01 || !iv11) continue;
+
+      const avgIV = (iv00 + iv10 + iv01 + iv11) / 4;
+      const t     = (avgIV - minIV) / ivRange;
+      const col   = heatColor(t, '0.82');
+
+      const p00 = project(xi,   iv00, zi);
+      const p10 = project(xi+1, iv10, zi);
+      const p11 = project(xi+1, iv11, zi+1);
+      const p01 = project(xi,   iv01, zi+1);
+
+      ctx.beginPath();
+      ctx.moveTo(p00.sx, p00.sy);
+      ctx.lineTo(p10.sx, p10.sy);
+      ctx.lineTo(p11.sx, p11.sy);
+      ctx.lineTo(p01.sx, p01.sy);
+      ctx.closePath();
+      ctx.fillStyle   = col;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.lineWidth   = 0.5;
+      ctx.stroke();
+    }
+  }
+
+  // ── Axis labels ───────────────────────────────────────────────────────────
+  ctx.font      = '8px JetBrains Mono,monospace';
+  ctx.fillStyle = colText;
+
+  // X axis: moneyness labels
+  [0, Math.floor(NX/4), Math.floor(NX/2), Math.floor(3*NX/4), NX-1].forEach(xi => {
+    const iv_mid = (minIV + maxIV) / 2;
+    const p = project(xi, iv_mid, NZ - 1);
+    ctx.textAlign = 'center';
+    const label = mBuckets[xi] === 0 ? 'ATM' : (mBuckets[xi] > 0 ? '+' : '') + mBuckets[xi] + '%';
+    ctx.fillText(label, p.sx, p.sy + 14);
+  });
+
+  // Z axis: DTE labels (every other)
+  dteBuckets.filter((_,i) => i % Math.max(1,Math.ceil(NZ/5)) === 0).forEach((dte, _, arr, zi=dteBuckets.indexOf(dte)) => {
+    const p = project(0, minIV, zi);
+    ctx.textAlign = 'right';
+    ctx.fillText(dte + 'd', p.sx - 4, p.sy + 3);
+  });
+
+  // ── Color bar ─────────────────────────────────────────────────────────────
+  const barX = W - 20, barY1 = H * 0.15, barH = H * 0.55;
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60;
+    ctx.fillStyle = heatColor(t, '1');
+    ctx.fillRect(barX, barY1 + barH * (1-t), 8, barH/60 + 1);
+  }
+  ctx.fillStyle = colText; ctx.textAlign = 'right'; ctx.font = '8px JetBrains Mono,monospace';
+  ctx.fillText(maxIV.toFixed(0) + '%', barX - 3, barY1 + 4);
+  ctx.fillText(((minIV+maxIV)/2).toFixed(0) + '%', barX - 3, barY1 + barH/2 + 3);
+  ctx.fillText(minIV.toFixed(0) + '%', barX - 3, barY1 + barH + 3);
+  ctx.fillStyle = colMuted; ctx.font = '7px JetBrains Mono,monospace';
+  ctx.save(); ctx.translate(barX + 12, barY1 + barH/2);
+  ctx.rotate(-Math.PI/2); ctx.textAlign='center';
+  ctx.fillText('IMPLIED VOL %', 0, 0); ctx.restore();
+
+  // Title
+  ctx.fillStyle = colText; ctx.textAlign = 'left'; ctx.font = '9px JetBrains Mono,monospace';
+  ctx.fillText(S.ticker + ' Volatility Surface  ·  Calls  ·  ' + dteBuckets.length + ' expirations', PAD, 16);
+
+  // ── Stats panel ───────────────────────────────────────────────────────────
+  const atmIVs = points.filter(p => Math.abs(p.moneyness) <= 1).sort((a,b) => a.dte-b.dte);
+  const termStructure = atmIVs.slice(0,5).map(p => `<div class="gex-level-row">
+    <span class="gex-level-key">${p.dte}d ATM</span>
+    <span class="gex-level-val">${p.iv.toFixed(1)}%</span>
+  </div>`).join('');
+
+  const nearIV = atmIVs[0]?.iv || 0;
+  const farIV  = atmIVs[atmIVs.length-1]?.iv || 0;
+  const slope  = farIV - nearIV;
+
+  anaStats(`
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">IV Range</div>
+      <div class="gex-stat-val" style="font-size:13px">${minIV.toFixed(1)}% – ${maxIV.toFixed(1)}%</div>
+    </div>
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">Term Structure</div>
+      <div style="font-size:9px;color:var(--muted2);margin-bottom:4px">${slope >= 0 ? '↗ Normal (contango)' : '↘ Inverted (backwardation)'}</div>
+      ${termStructure}
+    </div>
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">Expirations</div>
+      <div class="gex-stat-val" style="font-size:13px">${dteBuckets.length}</div>
+    </div>
+    <div class="gex-stat-block">
+      <div class="gex-stat-lbl">IV Points</div>
+      <div class="gex-stat-val" style="font-size:13px">${points.length}</div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;font-size:9px;color:var(--muted2);line-height:1.6">
+      X = Moneyness (% from spot)<br>
+      Z = DTE (near → far)<br>
+      Y = Implied Vol %<br>
+      Color = heat map (blue=low, red=high)
+    </div>
+  `);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  INIT — auto-connect if secret key was saved
+// ═══════════════════════════════════════════════════════════════════════════
+S.rawKey = localStorage.getItem('pub_raw_key') || '';
+if (S.rawKey) {
+  document.getElementById('token-input').value = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+  connectAccount();
+}
+</script>
+</body>
+</html>

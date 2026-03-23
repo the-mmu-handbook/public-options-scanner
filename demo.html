@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Public Options Scanner — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06080d;--panel:#0c0f18;--panel2:#10131f;
+  --border:#1a2035;--border2:#242d48;
+  --text:#c4cfe8;--muted:#3f4e6e;--muted2:#5a6a8a;
+  --amber:#f5a623;--green:#0fc98a;--red:#f05151;--blue:#4e8cff;--purple:#a78bfa;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden}
+
+/* ── Hero ── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 24px;text-align:center;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(245,166,35,0.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-logo{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:4px;color:var(--amber);text-transform:uppercase;margin-bottom:24px;opacity:0.8}
+.hero h1{font-size:clamp(36px,6vw,72px);font-weight:700;line-height:1.1;margin-bottom:20px;letter-spacing:-1px}
+.hero h1 span{color:var(--amber)}
+.hero p{font-size:18px;color:var(--muted2);max-width:540px;line-height:1.7;margin-bottom:40px}
+.hero-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:48px}
+.chip{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;
+  padding:5px 12px;border:1px solid var(--border2);color:var(--muted2);
+  text-transform:uppercase;
+}
+.chip.highlight{border-color:var(--amber);color:var(--amber);background:rgba(245,166,35,0.07)}
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{
+  background:var(--amber);color:#000;font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  padding:12px 28px;border:none;cursor:pointer;text-decoration:none;display:inline-block;
+  transition:all 0.12s;
+}
+.btn-primary:hover{background:#ffc040;transform:translateY(-1px)}
+.btn-outline{
+  background:transparent;color:var(--muted2);border:1px solid var(--border2);
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:12px 28px;cursor:pointer;text-decoration:none;display:inline-block;
+  transition:all 0.12s;
+}
+.btn-outline:hover{border-color:var(--amber);color:var(--amber)}
+
+/* ── Terminal mockup ── */
+.terminal-wrap{width:100%;max-width:1100px;margin:60px auto 0;position:relative}
+.terminal{
+  background:var(--panel);border:1px solid var(--border2);overflow:hidden;
+  box-shadow:0 40px 120px rgba(0,0,0,0.6),0 0 0 1px rgba(245,166,35,0.06);
+}
+.terminal-header{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--panel2);border-bottom:1px solid var(--border);
+}
+.terminal-dot{width:10px;height:10px;border-radius:50%}
+.dot-red{background:#f05151}
+.dot-yellow{background:#f5a623}
+.dot-green{background:#0fc98a}
+.terminal-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto;letter-spacing:1px}
+
+/* ── Feature grid ── */
+.features{padding:100px 24px;max-width:1100px;margin:0 auto}
+.section-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--amber);text-transform:uppercase;margin-bottom:16px}
+.section-title{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-0.5px;margin-bottom:48px;line-height:1.2}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--border)}
+.feature-card{background:var(--panel);padding:32px;transition:background 0.2s}
+.feature-card:hover{background:var(--panel2)}
+.feature-icon{font-size:28px;margin-bottom:16px}
+.feature-card h3{font-size:15px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.feature-card p{font-size:13px;color:var(--muted2);line-height:1.7}
+.feature-tag{
+  display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  letter-spacing:1px;padding:2px 6px;margin-top:12px;
+  background:rgba(245,166,35,0.1);color:var(--amber);text-transform:uppercase;
+}
+
+/* ── Animated chain table ── */
+.chain-demo{
+  background:var(--panel);border:1px solid var(--border2);overflow:hidden;
+  margin:60px auto;max-width:1100px;
+}
+.chain-toolbar{
+  display:flex;align-items:center;gap:8px;padding:8px 14px;
+  background:var(--panel2);border-bottom:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+}
+.tb-sep{width:1px;height:14px;background:var(--border2)}
+.sel-mock{
+  background:var(--bg);border:1px solid var(--border2);color:var(--muted2);
+  font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;
+}
+.chain-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11px}
+.chain-table th{
+  background:var(--panel2);padding:6px 10px;text-align:right;
+  font-size:8px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+  border-bottom:1px solid var(--border2);
+}
+.chain-table th.strike-hdr{text-align:center;background:var(--panel);border-left:1px solid var(--border2);border-right:1px solid var(--border2)}
+.chain-table td{padding:5px 10px;text-align:right;border-bottom:1px solid rgba(26,32,53,0.5)}
+.strike-td{text-align:center;font-weight:700;background:var(--panel);border-left:1px solid var(--border2);border-right:1px solid var(--border2)}
+.atm-row{background:rgba(245,166,35,0.04)!important}
+.atm-tag{font-size:8px;background:rgba(78,140,255,0.15);color:var(--blue);padding:0 3px;margin-left:3px}
+.iv-high{color:var(--amber);font-weight:600}
+.delta-c{color:var(--green)}
+.delta-p{color:var(--red)}
+.ask-c{color:#42e8a0}
+.row-flash{animation:rowflash 0.6s ease}
+@keyframes rowflash{0%{background:rgba(245,166,35,0.18)}100%{background:transparent}}
+
+/* ── Stats row ── */
+.stats-row{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:60px auto;max-width:1100px}
+.stat{flex:1;min-width:140px;padding:32px 24px;border-right:1px solid var(--border);text-align:center}
+.stat:last-child{border-right:none}
+.stat-num{font-size:clamp(28px,4vw,42px);font-weight:700;color:var(--amber);font-family:'JetBrains Mono',monospace}
+.stat-lbl{font-size:11px;color:var(--muted2);margin-top:6px;letter-spacing:1px;text-transform:uppercase}
+
+/* ── Strategy cards ── */
+.strat-section{padding:80px 24px;max-width:1100px;margin:0 auto}
+.strat-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:32px}
+.strat-pill{
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;
+  padding:6px 12px;border:1px solid var(--border2);color:var(--muted2);
+  background:var(--panel);text-transform:uppercase;cursor:default;
+  transition:all 0.15s;animation:pillappear 0.4s ease both;
+}
+.strat-pill:hover{border-color:var(--amber);color:var(--amber);background:rgba(245,166,35,0.07)}
+.strat-pill.bullish{border-color:rgba(15,201,138,0.3);color:var(--green)}
+.strat-pill.bearish{border-color:rgba(240,81,81,0.3);color:var(--red)}
+.strat-pill.neutral{border-color:rgba(245,166,35,0.3);color:var(--amber)}
+.strat-pill.volatile{border-color:rgba(167,139,250,0.3);color:var(--purple)}
+@keyframes pillappear{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Flow diagram ── */
+.flow{padding:80px 24px;max-width:900px;margin:0 auto}
+.flow-steps{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;margin-top:40px}
+.flow-step{
+  flex:1;min-width:120px;background:var(--panel);border:1px solid var(--border2);
+  padding:24px 20px;position:relative;text-align:center;
+}
+.flow-step+.flow-step::before{
+  content:'→';position:absolute;left:-14px;top:50%;transform:translateY(-50%);
+  color:var(--amber);font-size:16px;z-index:1;background:var(--bg);padding:0 2px;
+}
+.flow-num{
+  width:24px;height:24px;border-radius:50%;background:var(--amber);color:#000;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 10px;
+}
+.flow-step h4{font-size:11px;font-weight:700;color:var(--text);letter-spacing:0.5px;margin-bottom:6px}
+.flow-step p{font-size:10px;color:var(--muted2);line-height:1.5}
+
+/* ── Footer ── */
+.footer{
+  padding:48px 24px;border-top:1px solid var(--border);text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);
+}
+.footer a{color:var(--amber);text-decoration:none}
+.footer-badge{
+  display:inline-block;border:1px solid var(--amber);color:var(--amber);
+  padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:20px;background:rgba(245,166,35,0.07);
+}
+
+/* ── Scroll reveal ── */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.5s ease,transform 0.5s ease}
+.reveal.visible{opacity:1;transform:none}
+
+/* ── Typewriter ── */
+.typewriter{border-right:2px solid var(--amber);animation:blink 0.8s step-end infinite;white-space:nowrap;overflow:hidden}
+@keyframes blink{50%{border-color:transparent}}
+
+/* ── Price ticker ── */
+.ticker-row{
+  display:flex;align-items:center;gap:16px;padding:8px 14px;
+  border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:12px;
+  background:var(--panel);
+}
+.ticker-sym{font-weight:700}
+.ticker-price{color:var(--amber);font-weight:600}
+.ticker-change.up{color:var(--green)}
+.ticker-change.dn{color:var(--red)}
+.ticker-time{font-size:9px;color:var(--muted);margin-left:auto}
+</style>
+</head>
+<body>
+
+<!-- ── HERO ────────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-logo">⬡ Built with Public API</div>
+  <h1>Options Scanner<br><span>for Public</span></h1>
+  <p>A real-time options trading terminal — scan chains, build strategies, analyse gamma exposure, and visualise the volatility surface. Powered entirely by the Public API.</p>
+  <div class="hero-chips">
+    <span class="chip highlight">20 Strategies</span>
+    <span class="chip highlight">GEX Analysis</span>
+    <span class="chip highlight">Vol Surface</span>
+    <span class="chip">Real-time Greeks</span>
+    <span class="chip">Black-Scholes Payoff</span>
+    <span class="chip">Live Order Placement</span>
+    <span class="chip">8 API Endpoints</span>
+    <span class="chip">Zero External Libraries</span>
+  </div>
+  <div class="cta-row">
+    <a href="https://github.com/YOUR_USERNAME/public-options-scanner" class="btn-primary">View on GitHub</a>
+    <a href="https://public.com/skills-challenge" class="btn-outline">#BuildWithPublic</a>
+  </div>
+</section>
+
+<!-- ── LIVE CHAIN DEMO ──────────────────────────────────────────────────────── -->
+<div class="chain-demo reveal">
+  <div class="ticker-row">
+    <span class="ticker-sym" id="demo-sym">SPY</span>
+    <span class="ticker-price" id="demo-price">$596.42</span>
+    <span class="ticker-change up" id="demo-chg">+1.23 (+0.21%)</span>
+    <span class="ticker-time" id="demo-time">as of 3:45:22 PM</span>
+  </div>
+  <div class="chain-toolbar">
+    <span style="font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Show</span>
+    <select class="sel-mock"><option>Calls + Puts</option></select>
+    <div class="tb-sep"></div>
+    <span style="font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Min IV</span>
+    <select class="sel-mock"><option>0%</option></select>
+    <div class="tb-sep"></div>
+    <span style="font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Strikes</span>
+    <select class="sel-mock"><option>±10</option></select>
+    <div class="tb-sep"></div>
+    <span style="font-size:9px;color:var(--muted2);border:1px solid var(--border2);padding:3px 8px">⚡ Unusual</span>
+    <span style="margin-left:auto;font-size:9px;color:var(--muted)">171C · 171P · exp 2026-03-28 · 3:45:22 PM</span>
+  </div>
+  <div style="overflow:auto">
+  <table class="chain-table" id="chain-table">
+    <thead>
+      <tr>
+        <th>IV</th><th>Δ</th><th>Θ</th><th>Vol</th><th>OI</th><th>Bid</th><th>Ask</th><th></th>
+        <th class="strike-hdr">STRIKE</th>
+        <th></th><th>Bid</th><th>Ask</th><th>OI</th><th>Vol</th><th>Θ</th><th>Δ</th><th>IV</th>
+      </tr>
+    </thead>
+    <tbody id="chain-tbody"></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ── STATS ──────────────────────────────────────────────────────────────────── -->
+<div class="stats-row reveal">
+  <div class="stat"><div class="stat-num">20</div><div class="stat-lbl">Strategies</div></div>
+  <div class="stat"><div class="stat-num">8</div><div class="stat-lbl">API Endpoints</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-lbl">Analysis Tabs</div></div>
+  <div class="stat"><div class="stat-num">0</div><div class="stat-lbl">External Libraries</div></div>
+  <div class="stat"><div class="stat-num">78</div><div class="stat-lbl">QA Checks</div></div>
+</div>
+
+<!-- ── FEATURES ──────────────────────────────────────────────────────────────── -->
+<section class="features reveal">
+  <div class="section-label">What's inside</div>
+  <h2 class="section-title">Four tabs.<br>One terminal.</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Scanner</h3>
+      <p>Real-time option chains with streaming Greeks. IV, Δ, Θ, volume, and open interest — with unusual activity detection and adaptive strike filtering.</p>
+      <span class="feature-tag">Live data</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Strategy Builder</h3>
+      <p>20 strategies auto-populate from the live chain. Per-leg strike and expiry dropdowns. Black-Scholes payoff diagram with time slider. Preflight + live order placement.</p>
+      <span class="feature-tag">Order execution</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">γ</div>
+      <h3>Gamma Exposure</h3>
+      <p>Dealer gamma positioning across all expirations. Gamma Wall, Zero Gamma level, and net GEX direction — grouped by week and month.</p>
+      <span class="feature-tag">Market structure</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <h3>Analytics</h3>
+      <p>IV Smile, Max Pain, Put/Call Ratio, Implied Move, and a full 3D Volatility Surface — all from cached chain data with zero extra API calls.</p>
+      <span class="feature-tag">5 visualisations</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── STRATEGIES ─────────────────────────────────────────────────────────────── -->
+<section class="strat-section reveal">
+  <div class="section-label">Strategy Builder</div>
+  <h2 class="section-title">20 strategies.<br>All auto-populated.</h2>
+  <p style="color:var(--muted2);max-width:500px;line-height:1.7;margin-bottom:8px">Click any strategy and the legs populate automatically from the live chain — strikes, expiries, bid/ask, and greeks all filled in. Override anything.</p>
+  <div class="strat-grid" id="strat-grid"></div>
+</section>
+
+<!-- ── FLOW ───────────────────────────────────────────────────────────────────── -->
+<section class="flow reveal">
+  <div class="section-label">Order flow</div>
+  <h2 class="section-title">From chain to<br>confirmed order.</h2>
+  <div class="flow-steps">
+    <div class="flow-step"><div class="flow-num">1</div><h4>Connect</h4><p>Secret key → access token exchange</p></div>
+    <div class="flow-step"><div class="flow-num">2</div><h4>Scan</h4><p>Live chain + streaming Greeks</p></div>
+    <div class="flow-step"><div class="flow-num">3</div><h4>Build</h4><p>Pick strategy, override legs</p></div>
+    <div class="flow-step"><div class="flow-num">4</div><h4>Preflight</h4><p>Cost + buying power + fees</p></div>
+    <div class="flow-step"><div class="flow-num">5</div><h4>Place</h4><p>Live multi-leg order</p></div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-badge">#BuildWithPublic</div><br>
+  Built for the <a href="https://public.com/skills-challenge">Public Skills Challenge</a> · March 2026<br><br>
+  <a href="https://github.com/YOUR_USERNAME/public-options-scanner">github.com/YOUR_USERNAME/public-options-scanner</a>
+</footer>
+
+<script>
+// ── Chain table animation ───────────────────────────────────────────────────
+const ROWS = [
+  {strike:590,callIV:'18.2%',callD:'0.82',callT:'-0.91',callVol:'2.1K',callOI:'8.4K',callBid:'$6.80',callAsk:'$6.90',putBid:'$0.48',putAsk:'$0.50',putOI:'5.2K',putVol:'892',putT:'-0.22',putD:'-0.18',putIV:'19.4%'},
+  {strike:592,callIV:'17.8%',callD:'0.79',callT:'-0.88',callVol:'1.8K',callOI:'7.1K',callBid:'$5.20',callAsk:'$5.30',putBid:'$0.62',putAsk:'$0.64',putOI:'4.8K',putVol:'1.1K',putT:'-0.28',putD:'-0.21',putIV:'19.1%'},
+  {strike:594,callIV:'17.1%',callD:'0.74',callT:'-0.84',callVol:'3.2K',callOI:'9.8K',callBid:'$3.90',callAsk:'$4.00',putBid:'$0.85',putAsk:'$0.87',putOI:'6.1K',putVol:'2.3K',putT:'-0.35',putD:'-0.26',putIV:'18.8%',unusual:true},
+  {strike:596,callIV:'16.4%',callD:'0.64',callT:'-0.79',callVol:'4.1K',callOI:'12.3K',callBid:'$2.80',callAsk:'$2.85',putBid:'$1.28',putAsk:'$1.30',putOI:'8.9K',putVol:'3.8K',putT:'-0.44',putD:'-0.36',putIV:'18.2%',atm:true},
+  {strike:598,callIV:'17.0%',callD:'0.51',callT:'-0.74',callVol:'2.9K',callOI:'10.1K',callBid:'$1.85',callAsk:'$1.88',putBid:'$2.10',putAsk:'$2.13',putOI:'7.2K',putVol:'1.9K',putT:'-0.52',putD:'-0.49',putIV:'18.6%'},
+  {strike:600,callIV:'17.8%',callD:'0.38',callT:'-0.68',callVol:'5.6K',callOI:'15.2K',callBid:'$1.10',callAsk:'$1.12',putBid:'$3.20',putAsk:'$3.25',putOI:'11.4K',putVol:'6.2K',putT:'-0.61',putD:'-0.62',putIV:'19.2%',unusual:true},
+  {strike:602,callIV:'18.6%',callD:'0.26',callT:'-0.58',callVol:'1.4K',callOI:'6.8K',callBid:'$0.58',callAsk:'$0.60',putBid:'$4.60',putAsk:'$4.65',putOI:'5.1K',putVol:'880',putT:'-0.48',putD:'-0.74',putIV:'20.1%'},
+];
+
+function buildChain() {
+  const tbody = document.getElementById('chain-tbody');
+  tbody.innerHTML = ROWS.map(r => `
+    <tr class="${r.atm?'atm-row':''}">
+      <td class="${parseFloat(r.callIV)>17?'iv-high':''}">${r.callIV}</td>
+      <td class="delta-c">${r.callD}</td><td>${r.callT}</td>
+      <td>${r.callVol}${r.unusual?'<span style="color:var(--amber);font-size:9px"> ⚡</span>':''}</td>
+      <td>${r.callOI}</td>
+      <td>${r.callBid}</td>
+      <td style="color:#42e8a0">${r.callAsk}</td>
+      <td><span style="font-size:8px;font-weight:700;color:var(--amber);border:1px solid var(--amber);padding:1px 4px;opacity:0">+ADD</span></td>
+      <td class="strike-td">$${r.strike}${r.atm?'<span class="atm-tag">ATM</span>':''}</td>
+      <td><span style="font-size:8px;font-weight:700;color:var(--amber);border:1px solid var(--amber);padding:1px 4px;opacity:0">+ADD</span></td>
+      <td style="color:#f07070">${r.putBid}</td><td>${r.putAsk}</td>
+      <td>${r.putOI}</td>
+      <td>${r.putVol}${r.unusual?'<span style="color:var(--amber);font-size:9px"> ⚡</span>':''}</td>
+      <td>${r.putT}</td>
+      <td class="delta-p">${r.putD}</td>
+      <td class="${parseFloat(r.putIV)>19?'iv-high':''}">${r.putIV}</td>
+    </tr>`).join('');
+
+  // Show +ADD on hover rows
+  document.querySelectorAll('#chain-tbody tr').forEach(row => {
+    row.addEventListener('mouseenter', () => row.querySelectorAll('span[style*="opacity:0"]').forEach(s => s.style.opacity='1'));
+    row.addEventListener('mouseleave', () => row.querySelectorAll('span[style*="opacity:1"]').forEach(s => s.style.opacity='0'));
+  });
+}
+buildChain();
+
+// Animate price updates
+let basePrice = 596.42;
+setInterval(() => {
+  const delta = (Math.random()-0.48)*0.15;
+  basePrice = Math.round((basePrice+delta)*100)/100;
+  const chg = Math.round((basePrice-596.42)*100)/100;
+  document.getElementById('demo-price').textContent = '$'+basePrice.toFixed(2);
+  const chgEl = document.getElementById('demo-chg');
+  chgEl.textContent = (chg>=0?'+':'')+chg.toFixed(2)+' ('+(chg>=0?'+':'')+(chg/596.42*100).toFixed(2)+'%)';
+  chgEl.className = 'ticker-change '+(chg>=0?'up':'dn');
+  document.getElementById('demo-time').textContent = 'as of '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  // Flash a random row
+  const rows = document.querySelectorAll('#chain-tbody tr');
+  const row = rows[Math.floor(Math.random()*rows.length)];
+  if(row){row.classList.add('row-flash');setTimeout(()=>row.classList.remove('row-flash'),600);}
+}, 1800);
+
+// ── Strategy pills ──────────────────────────────────────────────────────────
+const STRATS = [
+  {name:'Bull Call Spread',cat:'bullish'},{name:'Bull Put Spread',cat:'bullish'},
+  {name:'Cash-Secured Put',cat:'bullish'},{name:'Covered Call',cat:'bullish'},
+  {name:'Synthetic Long',cat:'bullish'},
+  {name:'Bear Put Spread',cat:'bearish'},{name:'Bear Call Spread',cat:'bearish'},
+  {name:'Protective Put',cat:'bearish'},{name:'Synthetic Short',cat:'bearish'},
+  {name:'Iron Condor',cat:'neutral'},{name:'Iron Butterfly',cat:'neutral'},
+  {name:'Butterfly',cat:'neutral'},{name:'Broken Wing Butterfly',cat:'neutral'},
+  {name:'Calendar',cat:'neutral'},{name:'Diagonal',cat:'neutral'},
+  {name:'Straddle',cat:'volatile'},{name:'Strangle',cat:'volatile'},
+  {name:'Jade Lizard',cat:'volatile'},{name:'Ratio Spread',cat:'volatile'},
+  {name:'Condor',cat:'volatile'},
+];
+const grid = document.getElementById('strat-grid');
+STRATS.forEach((s,i) => {
+  const el = document.createElement('button');
+  el.className = `strat-pill ${s.cat}`;
+  el.textContent = s.name;
+  el.style.animationDelay = (i*0.04)+'s';
+  grid.appendChild(el);
+});
+
+// ── Scroll reveal ────────────────────────────────────────────────────────────
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
