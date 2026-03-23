@@ -19,7 +19,7 @@
 |---|---|
 | ![Scanner](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/Scanner.jpg) | ![Strategy Builder](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/Strategy%20Builder.jpg) |
 
-| GEX — Gamma Exposure | Analytics — IV Smile |
+| GEX — Gamma Exposure | Analytics — Surface Volume |
 |---|---|
 | ![GEX](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/GEX.jpg) | ![Vol Surface](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/Surface%20Volume.jpg) |
 
