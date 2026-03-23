@@ -13,6 +13,18 @@
 
 ---
 
+## Screenshots
+
+| Scanner — Live Chain | Strategy Builder — Iron Condor |
+|---|---|
+| ![Scanner](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/Scanner.jpg) | ![Strategy Builder](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/Strategy%20Builder.jpg) |
+
+| GEX — Gamma Exposure | Analytics — IV Smile |
+|---|---|
+| ![GEX](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/GEX.jpg) | ![Vol Surface](https://raw.githubusercontent.com/the-mmu-handbook/public-options-scanner/main/Surface%20Volume.jpg) |
+
+---
+
 ## What It Does
 
 A single-file web app + lightweight Node.js proxy that turns your Public brokerage account into a professional options terminal. Four tabs, zero external charting libraries, zero additional data subscriptions — everything powered by the Public API.
